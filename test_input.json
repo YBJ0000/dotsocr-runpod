@@ -1,5 +1,6 @@
 {
   "input": {
-      "prompt": "Hey there!"
+    "image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "prompt_type": "layout_parsing"
   }
 }
