@@ -8,6 +8,12 @@ RUN apt-get update && apt-get install -y \
   build-essential \
   wget \
   curl \
+  libgl1-mesa-glx \
+  libglib2.0-0 \
+  libsm6 \
+  libxext6 \
+  libxrender-dev \
+  libgomp1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install wheel
@@ -26,8 +32,16 @@ RUN pip install --no-cache-dir \
   Pillow \
   accelerate
 
-# Try to install dots.ocr from GitHub (this should pull its own dependencies)
-RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
+# Install additional dependencies that dots.ocr might need
+RUN pip install --no-cache-dir \
+  opencv-python-headless \
+  numpy \
+  scipy \
+  matplotlib
+
+# For now, skip dots.ocr installation to get basic build working
+# RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
+RUN echo "dots.ocr installation skipped for now - will add later"
 
 # Copy your handler file
 COPY rp_handler.py /

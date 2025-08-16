@@ -41,18 +41,10 @@ def handler(event):
         
         logger.info(f"Processing image with prompt type: {prompt_type}")
         
-        # Import DotsOCR here to avoid loading model during container startup
-        try:
-            from dots_ocr import DotsOCRParser
-        except ImportError as e:
-            logger.error(f"Failed to import DotsOCRParser: {e}")
-            return {"error": "DotsOCR library not available"}
+        # For now, return a mock response since dots.ocr is not installed yet
+        logger.info("DotsOCR not yet installed - returning mock response")
         
-        # Initialize the parser
-        logger.info("Initializing DotsOCR parser...")
-        parser = DotsOCRParser()
-        
-        # Decode base64 image
+        # Decode base64 image to validate input
         try:
             image_data = base64.b64decode(image_base64)
             image = Image.open(io.BytesIO(image_data))
@@ -61,32 +53,13 @@ def handler(event):
             logger.error(f"Failed to decode image: {e}")
             return {"error": f"Failed to decode image: {str(e)}"}
         
-        # Save image to temporary file for processing
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-            image.save(tmp_file.name, 'PNG')
-            temp_image_path = tmp_file.name
-        
-        try:
-            # Process the image with DotsOCR
-            logger.info("Processing image with DotsOCR...")
-            result = parser.parse(temp_image_path, prompt_type=prompt_type)
-            
-            # Extract results
-            markdown_content = result.get('markdown', '')
-            layout_data = result.get('layout', [])
-            
-            logger.info(f"Processing completed. Markdown length: {len(markdown_content)}")
-            
-            return {
-                "markdown": markdown_content,
-                "layout_data": layout_data,
-                "status": "success"
-            }
-            
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_image_path):
-                os.unlink(temp_image_path)
+        # Return mock response for now
+        return {
+            "markdown": "# Mock OCR Result\n\nThis is a placeholder response while dots.ocr is being integrated.\n\nImage size: {}x{}".format(image.size[0], image.size[1]),
+            "layout_data": [{"type": "text", "content": "Mock content"}],
+            "status": "mock_response",
+            "note": "dots.ocr integration in progress"
+        }
                 
     except Exception as e:
         logger.error(f"Error in handler: {str(e)}")
