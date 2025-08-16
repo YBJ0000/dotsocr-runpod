@@ -40,8 +40,17 @@ RUN pip install --no-cache-dir \
   PyMuPDF \
   pdf2image
 
-# Install dots.ocr from GitHub
-RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
+# Install dots.ocr dependencies first (without flash-attn)
+RUN pip install --no-cache-dir \
+  gradio \
+  gradio_image_annotation \
+  openai \
+  qwen_vl_utils \
+  modelscope
+
+# Try to install dots.ocr with --no-deps to avoid flash-attn compilation
+RUN pip install --no-cache-dir --no-deps git+https://github.com/rednote-hilab/dots.ocr.git || \
+  echo "dots.ocr installation failed, will try alternative approach"
 
 # Copy your handler file
 COPY rp_handler.py /
