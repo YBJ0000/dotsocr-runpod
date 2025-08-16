@@ -8,6 +8,7 @@ RUN apt-get clean && \
   apt-get install -y --no-install-recommends \
   git \
   build-essential \
+  poppler-utils \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get clean
 
@@ -34,7 +35,10 @@ RUN pip install --no-cache-dir \
   requests \
   tqdm \
   scipy \
-  matplotlib
+  matplotlib \
+  opencv-python-headless \
+  PyMuPDF \
+  pdf2image
 
 # For now, skip dots.ocr installation to get basic build working
 # RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
