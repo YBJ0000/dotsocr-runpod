@@ -8,12 +8,6 @@ RUN apt-get clean && \
   apt-get install -y --no-install-recommends \
   git \
   build-essential \
-  libgl1-mesa-glx \
-  libglib2.0-0 \
-  libsm6 \
-  libxext6 \
-  libxrender-dev \
-  libgomp1 \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get clean
 
@@ -36,9 +30,6 @@ RUN pip install --no-cache-dir \
 # Install basic scientific computing packages
 RUN pip install --no-cache-dir \
   numpy \
-  opencv-python-headless \
-  scipy \
-  matplotlib \
   pandas \
   requests \
   tqdm
