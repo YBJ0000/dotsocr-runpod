@@ -6,6 +6,8 @@ WORKDIR /
 RUN apt-get update && apt-get install -y \
   git \
   build-essential \
+  libgl1-mesa-glx \
+  libglib2.0-0 \
   && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install wheel
@@ -28,7 +30,11 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir \
   numpy \
   opencv-python-headless \
-  scipy
+  scipy \
+  matplotlib \
+  pandas \
+  requests \
+  tqdm
 
 # For now, skip dots.ocr installation to get basic build working
 # RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
