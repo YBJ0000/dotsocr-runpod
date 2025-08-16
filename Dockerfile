@@ -40,9 +40,8 @@ RUN pip install --no-cache-dir \
   PyMuPDF \
   pdf2image
 
-# For now, skip dots.ocr installation to get basic build working
-# RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
-RUN echo "dots.ocr installation skipped for now - will add later"
+# Install dots.ocr from GitHub
+RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
 
 # Copy your handler file
 COPY rp_handler.py /
