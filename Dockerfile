@@ -2,18 +2,10 @@ FROM python:3.10-slim
 
 WORKDIR /
 
-# Install system dependencies
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y \
   git \
   build-essential \
-  wget \
-  curl \
-  libgl1-mesa-glx \
-  libglib2.0-0 \
-  libsm6 \
-  libxext6 \
-  libxrender-dev \
-  libgomp1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install wheel
@@ -32,12 +24,9 @@ RUN pip install --no-cache-dir \
   Pillow \
   accelerate
 
-# Install additional dependencies that dots.ocr might need
+# Install basic scientific computing packages
 RUN pip install --no-cache-dir \
-  opencv-python-headless \
-  numpy \
-  scipy \
-  matplotlib
+  numpy
 
 # For now, skip dots.ocr installation to get basic build working
 # RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
