@@ -32,7 +32,9 @@ RUN pip install --no-cache-dir \
   numpy \
   pandas \
   requests \
-  tqdm
+  tqdm \
+  scipy \
+  matplotlib
 
 # For now, skip dots.ocr installation to get basic build working
 # RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
