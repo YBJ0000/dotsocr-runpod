@@ -6,20 +6,27 @@ WORKDIR /
 RUN apt-get update && apt-get install -y \
   git \
   build-essential \
+  wget \
+  curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Upgrade pip and install wheel
+RUN pip install --upgrade pip setuptools wheel
+
+# Install core dependencies step by step
+RUN pip install --no-cache-dir runpod
+
+# Install PyTorch (CPU version for compatibility)
 RUN pip install --no-cache-dir \
-  runpod \
-  torch \
-  torchvision \
+  torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Install transformers and related packages
+RUN pip install --no-cache-dir \
   transformers \
   Pillow \
-  accelerate \
-  flash-attn \
-  qwen-vl-utils
+  accelerate
 
-# Install dots.ocr from GitHub
+# Try to install dots.ocr from GitHub (this should pull its own dependencies)
 RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
 
 # Copy your handler file
