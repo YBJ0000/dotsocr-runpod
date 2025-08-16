@@ -26,7 +26,9 @@ RUN pip install --no-cache-dir \
 
 # Install basic scientific computing packages
 RUN pip install --no-cache-dir \
-  numpy
+  numpy \
+  opencv-python-headless \
+  scipy
 
 # For now, skip dots.ocr installation to get basic build working
 # RUN pip install --no-cache-dir --verbose git+https://github.com/rednote-hilab/dots.ocr.git
