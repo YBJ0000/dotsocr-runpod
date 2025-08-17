@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /
 
-# 安装系统级依赖
+# 安装系统级依赖（只保留可用的）
 RUN apt-get update && \
     apt-get install -y \
     build-essential \
@@ -11,8 +11,6 @@ RUN apt-get update && \
     curl \
     wget \
     unzip \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
