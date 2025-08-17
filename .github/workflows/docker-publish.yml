@@ -9,27 +9,61 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-        
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64
-        push: true
-        tags: yangbingjia1206/serverless-test:sdpa
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # 避免拉过多历史，省空间（默认1，显式写上）
+          fetch-depth: 1
+
+      # 诊断：先看当前磁盘占用
+      - name: Disk usage (before cleanup)
+        run: |
+          echo "== df -h =="
+          df -h || true
+          echo "== workspace size =="
+          du -sh "$GITHUB_WORKSPACE" || true
+
+      # 释放空间（最省事的一键清理）
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      # 再看清理后的磁盘
+      - name: Disk usage (after cleanup)
+        run: |
+          df -h || true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 用 buildx + GHA 缓存；不使用 load，避免把镜像导回本地占空间
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64        # 只编 amd64，空间占用更低
+          push: true
+          tags: yangbingjia1206/serverless-test:sdpa
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          pull: true
+
+      # 构建后看看 Docker 占用（可选）
+      - name: Docker disk usage (after build)
+        run: |
+          docker system df -v || true
