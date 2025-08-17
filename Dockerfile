@@ -1,12 +1,14 @@
-FROM python:3.10-slim
+FROM nvidia/cuda:11.8-devel-ubuntu20.04
 
 WORKDIR /
 
-# 安装系统级依赖（只保留可用的）
+# 安装 Python 3.10 和系统依赖
 RUN apt-get update && \
     apt-get install -y \
-    build-essential \
-    cmake \
+    python3.10 \
+    python3.10-dev \
+    python3.10-distutils \
+    python3-pip \
     git \
     curl \
     wget \
@@ -14,38 +16,38 @@ RUN apt-get update && \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
+# 设置 Python 3.10 为默认
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
+
 # 升级 pip 和安装 wheel
-RUN pip install --upgrade pip setuptools wheel
+RUN python3 -m pip install --upgrade pip setuptools wheel
 
 # 安装核心依赖
 RUN pip install --no-cache-dir runpod
 
-# 安装 PyTorch (CPU 版本)
-RUN pip install --no-cache-dir \
-    torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# 安装 PyTorch（CUDA 版本，匹配 CUDA 11.8）
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
-# 安装 dots.ocr 的基础依赖（除了 flash-attn）
+# 安装 dots.ocr 的基础依赖
 RUN pip install --no-cache-dir \
+    transformers==4.51.3 \
+    Pillow \
+    accelerate \
     gradio \
     gradio_image_annotation \
     PyMuPDF \
     openai \
     qwen_vl_utils \
-    transformers==4.51.3 \
-    huggingface_hub \
     modelscope \
-    accelerate \
-    Pillow \
     numpy \
     scipy \
     matplotlib \
     opencv-python-headless \
     pdf2image
 
-# 安装预编译的 flash-attn（避免编译问题）
-RUN pip install --no-cache-dir \
-    https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.0.8/flash_attn-2.7.4.post1+cu126torch2.7-cp310-cp310-linux_x86_64.whl || \
-    echo "flash-attn installation failed, continuing without it"
+# 现在应该能正常安装 flash-attn（有 CUDA 编译环境）
+RUN pip install --no-cache-dir flash-attn==2.8.0.post2
 
 # 安装 dots.ocr（这次应该能成功）
 RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
