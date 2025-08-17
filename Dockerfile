@@ -2,58 +2,58 @@ FROM python:3.10-slim
 
 WORKDIR /
 
-# Install minimal system dependencies with better error handling
-RUN apt-get clean && \
-  apt-get update && \
-  apt-get install -y --no-install-recommends \
-  git \
-  build-essential \
-  poppler-utils \
-  && rm -rf /var/lib/apt/lists/* \
-  && apt-get clean
+# 安装系统级依赖
+RUN apt-get update && \
+    apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    unzip \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and install wheel
+# 升级 pip 和安装 wheel
 RUN pip install --upgrade pip setuptools wheel
 
-# Install core dependencies step by step
+# 安装核心依赖
 RUN pip install --no-cache-dir runpod
 
-# Install PyTorch (CPU version for compatibility)
+# 安装 PyTorch (CPU 版本)
 RUN pip install --no-cache-dir \
-  torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# Install transformers and related packages
+# 安装 dots.ocr 的基础依赖（除了 flash-attn）
 RUN pip install --no-cache-dir \
-  transformers \
-  Pillow \
-  accelerate
+    gradio \
+    gradio_image_annotation \
+    PyMuPDF \
+    openai \
+    qwen_vl_utils \
+    transformers==4.51.3 \
+    huggingface_hub \
+    modelscope \
+    accelerate \
+    Pillow \
+    numpy \
+    scipy \
+    matplotlib \
+    opencv-python-headless \
+    pdf2image
 
-# Install basic scientific computing packages
+# 安装预编译的 flash-attn（避免编译问题）
 RUN pip install --no-cache-dir \
-  numpy \
-  pandas \
-  requests \
-  tqdm \
-  scipy \
-  matplotlib \
-  opencv-python-headless \
-  PyMuPDF \
-  pdf2image
+    https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.0.8/flash_attn-2.7.4.post1+cu126torch2.7-cp310-cp310-linux_x86_64.whl || \
+    echo "flash-attn installation failed, continuing without it"
 
-# Install dots.ocr dependencies first (without flash-attn)
-RUN pip install --no-cache-dir \
-  gradio \
-  gradio_image_annotation \
-  openai \
-  qwen_vl_utils \
-  modelscope
+# 安装 dots.ocr（这次应该能成功）
+RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
 
-# Try to install dots.ocr with --no-deps to avoid flash-attn compilation
-RUN pip install --no-cache-dir --no-deps git+https://github.com/rednote-hilab/dots.ocr.git || \
-  echo "dots.ocr installation failed, will try alternative approach"
-
-# Copy your handler file
+# 复制你的 handler 文件
 COPY rp_handler.py /
 
-# Start the container
+# 启动容器
 CMD ["python3", "-u", "rp_handler.py"]
