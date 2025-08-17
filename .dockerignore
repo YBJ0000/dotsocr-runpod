@@ -1,0 +1,16 @@
+# 忽略本地虚拟环境和无关文件
+venv/
+.env
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+node_modules/
+dist/
+build/
+*.ipynb
+.cache/
+data/

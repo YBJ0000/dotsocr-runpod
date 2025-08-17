@@ -1,42 +1,42 @@
-FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+# ✅ 公网可拉取的基础镜像（含 PyTorch/CUDA/cuDNN）
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
 WORKDIR /
 
-# 系统依赖（尽量精简；poppler-utils 用于 PDF -> image）
+# ---- OS 依赖（尽量精简）----
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      git curl wget unzip poppler-utils \
+        git curl wget unzip poppler-utils \
+        libglib2.0-0 libgl1 \
+        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Python 工具 & 加速编译（如果兜底需要）
-ENV PIP_NO_CACHE_DIR=1
-RUN pip install -U pip setuptools wheel packaging ninja
+ENV PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1
 
-# ---- 安装 FlashAttention 预编译 wheel（与 torch2.3 + CUDA12.3 + py3.10 匹配）----
-# 优先用 wheel，失败再换 ABI 变体，仍失败再尝试 cu12 命名，最后兜底源码编译（MAX_JOBS=2）
+# ---- Python 构建工具 / ninja（若需兜底编译会用到）----
+RUN python -m pip install -U pip setuptools wheel packaging ninja
+
+# ---- FlashAttention 预编译 wheel（跳过源码编译）----
+# 适配 torch2.3 + cu12.x + py3.10；尝试 cxx11abi TRUE/FALSE 两种二进制
 ARG FA_VER=2.7.4.post1
 ARG PYTAG=cp310-cp310
 RUN set -eux; \
     BASE="https://github.com/Dao-AILab/flash-attention/releases/download/v${FA_VER}"; \
     pip install --no-build-isolation \
-      ${BASE}/flash_attn-${FA_VER}+cu123torch2.3cxx11abiTRUE-${PYTAG}-linux_x86_64.whl \
-  || pip install --no-build-isolation \
-      ${BASE}/flash_attn-${FA_VER}+cu123torch2.3cxx11abiFALSE-${PYTAG}-linux_x86_64.whl \
-  || pip install --no-build-isolation \
       ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiTRUE-${PYTAG}-linux_x86_64.whl \
   || pip install --no-build-isolation \
       ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiFALSE-${PYTAG}-linux_x86_64.whl \
   || (export MAX_JOBS=2; pip install --no-build-isolation flash-attn==${FA_VER})
-# -------------------------------------------------------------------------------
 
-# 可选：装 xformers 作为回退（不同 CUDA 小版本均尝试；失败就跳过）
-RUN pip install --extra-index-url https://download.pytorch.org/whl/cu123 xformers==0.0.25.post1 || \
-    pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformers==0.0.25.post1 || true
+# （可选）装 xformers 作为回退
+RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformers==0.0.25.post1 || true
 
-# 其余依赖（合并成一个层；注意：不要再在 requirements 里写 flash-attn 了）
-RUN pip install --no-cache-dir \
+# ---- 其余 Python 依赖（用较稳妥的版本上限）----
+# 说明：transformers 固定到较新但稳定的版本，避免与 modelscope/qwen_vl_utils 冲突
+RUN pip install \
     runpod \
-    transformers==4.51.3 \
+    "transformers<=4.43.3" \
     Pillow \
     accelerate \
     gradio \
@@ -51,10 +51,10 @@ RUN pip install --no-cache-dir \
     opencv-python-headless \
     pdf2image
 
-# 安装 dots.ocr（保持最新版或你指定的 commit）
-RUN pip install --no-cache-dir git+https://github.com/rednote-hilab/dots.ocr.git
+# ---- 安装 dots.ocr 代码，但不解析/覆盖依赖（关键！）----
+RUN pip install --no-deps git+https://github.com/rednote-hilab/dots.ocr.git
 
-# 复制 handler
+# 复制你的处理脚本
 COPY rp_handler.py /
 
 CMD ["python3", "-u", "rp_handler.py"]
