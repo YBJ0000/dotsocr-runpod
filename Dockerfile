@@ -1,14 +1,10 @@
-FROM nvidia/cuda:11.8-devel-ubuntu20.04
+FROM nvcr.io/nvidia/pytorch:24.02-py3
 
 WORKDIR /
 
-# 安装 Python 3.10 和系统依赖
+# 安装系统依赖
 RUN apt-get update && \
     apt-get install -y \
-    python3.10 \
-    python3.10-dev \
-    python3.10-distutils \
-    python3-pip \
     git \
     curl \
     wget \
@@ -16,18 +12,13 @@ RUN apt-get update && \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# 设置 Python 3.10 为默认
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
-
 # 升级 pip 和安装 wheel
-RUN python3 -m pip install --upgrade pip setuptools wheel
+RUN pip install --upgrade pip setuptools wheel
 
 # 安装核心依赖
 RUN pip install --no-cache-dir runpod
 
-# 安装 PyTorch（CUDA 版本，匹配 CUDA 11.8）
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# PyTorch 已经包含在基础镜像中，无需重新安装
 
 # 安装 dots.ocr 的基础依赖
 RUN pip install --no-cache-dir \
