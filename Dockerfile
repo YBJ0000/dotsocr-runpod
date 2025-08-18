@@ -3,19 +3,22 @@ FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
 WORKDIR /
 
-# ---- OS 依赖（尽量精简）----
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends \
-  git curl wget unzip poppler-utils \
+# ---- 0) 基础依赖（合并到前面相同位置）----
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  git git-lfs curl wget unzip poppler-utils ca-certificates build-essential \
   libglib2.0-0 libgl1 \
-  build-essential \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* && git lfs install
 
-ENV PIP_NO_CACHE_DIR=1 \
-  PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
 
-# ---- Python 构建工具 / ninja（若需兜底编译会用到）----
-RUN python -m pip install -U pip setuptools wheel packaging ninja
+# ---- 1) 先固定 PyTorch / 基础 Python 依赖（按你的 CUDA 基镜像选择）----
+# 注意：CUDA 12.x 可用 2.3/2.4
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install "torch==2.3.1" --extra-index-url https://download.pytorch.org/whl/cu121
+RUN pip install "opencv-python-headless" "pillow" "numpy" "scipy" "transformers>=4.41" "huggingface_hub>=0.23"
+
+# 这些是很多基于 pyproject 的包在构建时需要的元依赖
+RUN pip install "setuptools_scm" "build" "packaging" "ninja" "cmake"
 
 # ---- FlashAttention 预编译 wheel（跳过源码编译）----
 # 适配 torch2.3 + cu12.x + py3.10；尝试 cxx11abi TRUE/FALSE 两种二进制
@@ -36,8 +39,6 @@ RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformer
 # 说明：transformers 固定到较新但稳定的版本，避免与 modelscope/qwen_vl_utils 冲突
 RUN pip install \
   runpod \
-  "transformers<=4.43.3" \
-  Pillow \
   accelerate \
   gradio \
   gradio_image_annotation \
@@ -45,31 +46,49 @@ RUN pip install \
   openai \
   qwen_vl_utils \
   modelscope \
-  numpy \
-  scipy \
   matplotlib \
-  opencv-python-headless \
   pdf2image
 
-# ---- 安装 huggingface_hub 用于下载模型权重----
-RUN pip install huggingface_hub
+# ---- 2) 安装 dots.ocr（去掉隔离、增加重试、锁定commit）----
+# 有些仓库在 build isolation 下会找不到动态生成的版本号等，这里关闭隔离并给重试。
+ARG DOTSOCR_REF=main   # 你也可以改成具体commit以提高确定性
+RUN bash -lc '\
+  for i in 1 2 3; do \
+  pip install --no-build-isolation --verbose \
+  "git+https://github.com/rednote-hilab/dots.ocr.git@${DOTSOCR_REF}" && exit 0; \
+  echo "dots.ocr install failed, retry $i..." >&2; sleep 10; \
+  done; \
+  echo "dots.ocr install failed after retries" >&2; exit 1'
 
-# ---- 用 huggingface_hub 下载模型权重到 /weights/DotsOCR----
+# ---- 3) 下载模型权重到镜像中（用 huggingface_hub，避免 git-lfs 大文件坑）----
+ARG HF_TOKEN=""
+ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
+
 RUN python - <<'PY'
+import os, time, sys
 from huggingface_hub import snapshot_download
-snapshot_download(
-    repo_id="rednote-hilab/dots.ocr",
-    local_dir="/weights/DotsOCR",
-    local_dir_use_symlinks=False
-)
+repo_id = "rednote-hilab/dots.ocr"  # ✅ 正确 repo_id（小写、带点）
+target  = "/weights/DotsOCR"        # 目录名不要带点
+tok     = os.getenv("HUGGINGFACE_HUB_TOKEN") or None
+for i in range(3):
+    try:
+        snapshot_download(
+            repo_id=repo_id,
+            local_dir=target,
+            local_dir_use_symlinks=False,
+            token=tok
+        )
+        print("Downloaded:", repo_id, "->", target)
+        break
+    except Exception as e:
+        print("Download failed try", i+1, ":", e, file=sys.stderr)
+        if i == 2:
+            raise
+        time.sleep(10)
 PY
 
-# ---- 设置环境变量和PYTHONPATH（官方要求）----
-ENV hf_model_path=/weights/DotsOCR \
-  PYTHONPATH=/weights:$PYTHONPATH
-
-# ---- 安装 dots.ocr 代码，包含所有依赖----
-RUN pip install git+https://github.com/rednote-hilab/dots.ocr.git
+ENV hf_model_path=/weights/DotsOCR
+ENV PYTHONPATH=/weights:$PYTHONPATH
 
 # 复制你的处理脚本
 COPY rp_handler.py /
