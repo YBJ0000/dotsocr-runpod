@@ -58,7 +58,10 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64        # 只编 amd64，空间占用更低
           push: true
-          tags: yangbingjia1206/serverless-test:sdpa
+          tags: |
+            yangbingjia1206/serverless-test:latest
+            yangbingjia1206/serverless-test:${{ github.sha }}
+            yangbingjia1206/serverless-test:${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           pull: true
