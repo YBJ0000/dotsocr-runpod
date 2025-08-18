@@ -44,9 +44,11 @@ RUN pip install \
   matplotlib \
   pdf2image
 
-# ---- 1) 直接下载 dots.ocr 源码（用 codeload 压缩包比 git clone 稳）----
-ADD https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/main /tmp/dotsocr.zip
-RUN unzip -q /tmp/dotsocr.zip -d /opt && mv /opt/dots.ocr-main /opt/dots_ocr_src && rm -f /tmp/dotsocr.zip
+# ---- 1) 用 curl 跟随重定向下载 GitHub zip（避免 ADD 远程URL导致的 404）----
+RUN curl -L "https://github.com/rednote-hilab/dots.ocr/archive/refs/heads/main.zip" -o /tmp/dotsocr.zip \
+  && unzip -q /tmp/dotsocr.zip -d /opt \
+  && mv /opt/dots.ocr-main /opt/dots_ocr_src \
+  && rm -f /tmp/dotsocr.zip
 
 # ---- 2) 把父目录加到 PYTHONPATH，这样 from dots_ocr import ... 可以直接工作----
 ENV PYTHONPATH=/opt:$PYTHONPATH
