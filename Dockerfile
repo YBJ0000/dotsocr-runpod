@@ -5,14 +5,14 @@ WORKDIR /
 
 # ---- OS 依赖（尽量精简）----
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        git curl wget unzip poppler-utils \
-        libglib2.0-0 libgl1 \
-        build-essential \
-    && rm -rf /var/lib/apt/lists/*
+  apt-get install -y --no-install-recommends \
+  git curl wget unzip poppler-utils \
+  libglib2.0-0 libgl1 \
+  build-essential \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV PIP_NO_CACHE_DIR=1 \
-    PYTHONUNBUFFERED=1
+  PYTHONUNBUFFERED=1
 
 # ---- Python 构建工具 / ninja（若需兜底编译会用到）----
 RUN python -m pip install -U pip setuptools wheel packaging ninja
@@ -22,11 +22,11 @@ RUN python -m pip install -U pip setuptools wheel packaging ninja
 ARG FA_VER=2.7.4.post1
 ARG PYTAG=cp310-cp310
 RUN set -eux; \
-    BASE="https://github.com/Dao-AILab/flash-attention/releases/download/v${FA_VER}"; \
-    pip install --no-build-isolation \
-      ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiTRUE-${PYTAG}-linux_x86_64.whl \
+  BASE="https://github.com/Dao-AILab/flash-attention/releases/download/v${FA_VER}"; \
+  pip install --no-build-isolation \
+  ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiTRUE-${PYTAG}-linux_x86_64.whl \
   || pip install --no-build-isolation \
-      ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiFALSE-${PYTAG}-linux_x86_64.whl \
+  ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiFALSE-${PYTAG}-linux_x86_64.whl \
   || (export MAX_JOBS=2; pip install --no-build-isolation flash-attn==${FA_VER})
 
 # （可选）装 xformers 作为回退
@@ -35,24 +35,33 @@ RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformer
 # ---- 其余 Python 依赖（用较稳妥的版本上限）----
 # 说明：transformers 固定到较新但稳定的版本，避免与 modelscope/qwen_vl_utils 冲突
 RUN pip install \
-    runpod \
-    "transformers<=4.43.3" \
-    Pillow \
-    accelerate \
-    gradio \
-    gradio_image_annotation \
-    PyMuPDF \
-    openai \
-    qwen_vl_utils \
-    modelscope \
-    numpy \
-    scipy \
-    matplotlib \
-    opencv-python-headless \
-    pdf2image
+  runpod \
+  "transformers<=4.43.3" \
+  Pillow \
+  accelerate \
+  gradio \
+  gradio_image_annotation \
+  PyMuPDF \
+  openai \
+  qwen_vl_utils \
+  modelscope \
+  numpy \
+  scipy \
+  matplotlib \
+  opencv-python-headless \
+  pdf2image
 
-# ---- 安装 dots.ocr 代码，但不解析/覆盖依赖（关键！）----
-RUN pip install --no-deps git+https://github.com/rednote-hilab/dots.ocr.git
+# ---- 下载模型权重到 /weights/DotsOCR（官方要求）----
+RUN mkdir -p /weights && \
+  cd /weights && \
+  git clone https://huggingface.co/rednote-hilab/DotsOCR
+
+# ---- 设置环境变量和PYTHONPATH（官方要求）----
+ENV hf_model_path=/weights/DotsOCR \
+  PYTHONPATH=/weights:$PYTHONPATH
+
+# ---- 安装 dots.ocr 代码，包含所有依赖（移除--no-deps）----
+RUN pip install git+https://github.com/rednote-hilab/dots.ocr.git
 
 # 复制你的处理脚本
 COPY rp_handler.py /

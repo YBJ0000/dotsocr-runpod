@@ -43,12 +43,12 @@ def handler(event):
         
         # Try to import and use dots.ocr
         try:
-            from dots_ocr import DotsOCRParser
+            from dots_ocr import DotsOCR
             logger.info("DotsOCR imported successfully!")
             
             # Initialize the parser
             logger.info("Initializing DotsOCR parser...")
-            parser = DotsOCRParser()
+            parser = DotsOCR()
             
             # Decode base64 image
             try:
