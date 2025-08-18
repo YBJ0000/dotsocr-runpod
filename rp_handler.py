@@ -46,9 +46,13 @@ def handler(event):
             from dots_ocr import DotsOCR
             logger.info("DotsOCR imported successfully!")
             
-            # Initialize the parser
+            # Get model path from environment variable
+            hf_model_path = os.getenv("hf_model_path", "/weights/DotsOCR")
+            logger.info(f"Using model path: {hf_model_path}")
+            
+            # Initialize the parser with model path
             logger.info("Initializing DotsOCR parser...")
-            parser = DotsOCR()
+            parser = DotsOCR(model_path=hf_model_path)
             
             # Decode base64 image
             try:

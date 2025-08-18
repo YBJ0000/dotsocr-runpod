@@ -51,16 +51,24 @@ RUN pip install \
   opencv-python-headless \
   pdf2image
 
-# ---- 下载模型权重到 /weights/DotsOCR（官方要求）----
-RUN mkdir -p /weights && \
-  cd /weights && \
-  git clone https://huggingface.co/rednote-hilab/DotsOCR
+# ---- 安装 huggingface_hub 用于下载模型权重----
+RUN pip install huggingface_hub
+
+# ---- 用 huggingface_hub 下载模型权重到 /weights/DotsOCR----
+RUN python - <<'PY'
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id="rednote-hilab/DotsOCR",
+    local_dir="/weights/DotsOCR",
+    local_dir_use_symlinks=False
+)
+PY
 
 # ---- 设置环境变量和PYTHONPATH（官方要求）----
 ENV hf_model_path=/weights/DotsOCR \
   PYTHONPATH=/weights:$PYTHONPATH
 
-# ---- 安装 dots.ocr 代码，包含所有依赖（移除--no-deps）----
+# ---- 安装 dots.ocr 代码，包含所有依赖----
 RUN pip install git+https://github.com/rednote-hilab/dots.ocr.git
 
 # 复制你的处理脚本
