@@ -3,22 +3,17 @@ FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
 WORKDIR /
 
-# ---- 0) 基础依赖（合并到前面相同位置）----
+# ---- 0) 系统与Python依赖（与你现有保持一致）----
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  git git-lfs curl wget unzip poppler-utils ca-certificates build-essential \
-  libglib2.0-0 libgl1 \
-  && rm -rf /var/lib/apt/lists/* && git lfs install
+  git curl wget unzip poppler-utils ca-certificates libglib2.0-0 libgl1 build-essential \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
 
-# ---- 1) 先固定 PyTorch / 基础 Python 依赖（按你的 CUDA 基镜像选择）----
-# 注意：CUDA 12.x 可用 2.3/2.4
 RUN pip install --upgrade pip setuptools wheel
+# 预先固定大头依赖，避免后续解析带偏
 RUN pip install "torch==2.3.1" --extra-index-url https://download.pytorch.org/whl/cu121
 RUN pip install "opencv-python-headless" "pillow" "numpy" "scipy" "transformers>=4.41" "huggingface_hub>=0.23"
-
-# 这些是很多基于 pyproject 的包在构建时需要的元依赖
-RUN pip install "setuptools_scm" "build" "packaging" "ninja" "cmake"
 
 # ---- FlashAttention 预编译 wheel（跳过源码编译）----
 # 适配 torch2.3 + cu12.x + py3.10；尝试 cxx11abi TRUE/FALSE 两种二进制
@@ -49,46 +44,36 @@ RUN pip install \
   matplotlib \
   pdf2image
 
-# ---- 2) 安装 dots.ocr（去掉隔离、增加重试、锁定commit）----
-# 有些仓库在 build isolation 下会找不到动态生成的版本号等，这里关闭隔离并给重试。
-ARG DOTSOCR_REF=main   # 你也可以改成具体commit以提高确定性
-RUN bash -lc '\
-  for i in 1 2 3; do \
-  pip install --no-build-isolation --verbose \
-  "git+https://github.com/rednote-hilab/dots.ocr.git@${DOTSOCR_REF}" && exit 0; \
-  echo "dots.ocr install failed, retry $i..." >&2; sleep 10; \
-  done; \
-  echo "dots.ocr install failed after retries" >&2; exit 1'
+# ---- 1) 直接下载 dots.ocr 源码（用 codeload 压缩包比 git clone 稳）----
+ADD https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/main /tmp/dotsocr.zip
+RUN unzip -q /tmp/dotsocr.zip -d /opt && mv /opt/dots.ocr-main /opt/dots_ocr_src && rm -f /tmp/dotsocr.zip
 
-# ---- 3) 下载模型权重到镜像中（用 huggingface_hub，避免 git-lfs 大文件坑）----
+# ---- 2) 把父目录加到 PYTHONPATH，这样 from dots_ocr import ... 可以直接工作----
+ENV PYTHONPATH=/opt:$PYTHONPATH
+
+# ---- 3) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
 ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
 
 RUN python - <<'PY'
 import os, time, sys
 from huggingface_hub import snapshot_download
-repo_id = "rednote-hilab/dots.ocr"  # ✅ 正确 repo_id（小写、带点）
-target  = "/weights/DotsOCR"        # 目录名不要带点
+repo_id = "rednote-hilab/dots.ocr"      # ✅ 正确 repo_id（小写、带点）
+target  = "/weights/DotsOCR"            # 目录名不要带点
 tok     = os.getenv("HUGGINGFACE_HUB_TOKEN") or None
 for i in range(3):
     try:
-        snapshot_download(
-            repo_id=repo_id,
-            local_dir=target,
-            local_dir_use_symlinks=False,
-            token=tok
-        )
+        snapshot_download(repo_id=repo_id, local_dir=target, local_dir_use_symlinks=False, token=tok)
         print("Downloaded:", repo_id, "->", target)
         break
     except Exception as e:
         print("Download failed try", i+1, ":", e, file=sys.stderr)
-        if i == 2:
-            raise
+        if i == 2: raise
         time.sleep(10)
 PY
 
+# ---- 4) 运行时让 rp_handler.py 能找到权重----
 ENV hf_model_path=/weights/DotsOCR
-ENV PYTHONPATH=/weights:$PYTHONPATH
 
 # 复制你的处理脚本
 COPY rp_handler.py /
