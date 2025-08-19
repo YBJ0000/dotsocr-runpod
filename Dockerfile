@@ -42,16 +42,18 @@ RUN pip install \
   qwen_vl_utils \
   modelscope \
   matplotlib \
-  pdf2image
+  pdf2image \
+  tqdm \
+  requests
 
 # ---- 1) 下载 dots.ocr 源码 zip → /opt/dots_ocr_src（codeload + 严格校验 + 重试）----
 RUN set -eux; \
   for i in 1 2 3; do \
-  curl -fsSL "https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/main" -o /tmp/dotsocr.zip \
+  curl -fsSL "https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/master" -o /tmp/dotsocr.zip \
   && file /tmp/dotsocr.zip \
   && unzip -tq /tmp/dotsocr.zip \
   && unzip -q /tmp/dotsocr.zip -d /opt \
-  && mv /opt/dots.ocr-main /opt/dots_ocr_src \
+  && mv /opt/dots.ocr-master /opt/dots_ocr_src \
   && rm -f /tmp/dotsocr.zip && break \
   || { echo "download/unzip failed try $i"; rm -f /tmp/dotsocr.zip; sleep 10; }; \
   done
