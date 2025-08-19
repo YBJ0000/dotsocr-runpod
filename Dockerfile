@@ -77,21 +77,18 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 4) 将源码以开发模式安装进 site-packages，避免仅靠 PYTHONPATH----
-RUN pip install --no-build-isolation -e /opt/dots_ocr_src
+# ---- 4) 让 Python 能同时看到源码根目录和 src 布局目录----
+ENV DOTSOCR_SRC=/opt/dots_ocr_src
+ENV PYTHONPATH=/opt/dots_ocr_src:/opt/dots_ocr_src/src:/weights:$PYTHONPATH
 
-# ---- 5) 设置环境变量（双保险：site-packages + PYTHONPATH）----
-ENV hf_model_path=/weights/DotsOCR
-ENV PYTHONPATH=/opt/dots_ocr_src:/weights:$PYTHONPATH
-
-# ---- 6) 健康检查：验证环境配置和模块导入----
+# ---- 5) 构建期自检：验证环境配置和模块搜索路径----
 RUN python - <<'PY'
-import os, sys
-print("== Sanity Check ==")
-print("PYTHONPATH:", os.getenv("PYTHONPATH"))
-print("hf_model_path:", os.getenv("hf_model_path"))
-import dots_ocr
-print("import dots_ocr -> OK")
+import os, sys, importlib.util
+print("PYTHONPATH=", os.getenv("PYTHONPATH"))
+for p in sys.path[:5]:
+    print("sys.path head:", p)
+print("hf_model_path=", os.getenv("hf_model_path"))
+print("find_spec(dots_ocr) ->", importlib.util.find_spec("dots_ocr"))
 PY
 
 # 复制你的处理脚本
