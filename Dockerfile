@@ -77,9 +77,22 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 4) 设置环境变量（放在源码解压和权重下载之后，CMD之前）----
+# ---- 4) 将源码以开发模式安装进 site-packages，避免仅靠 PYTHONPATH----
+RUN pip install --no-build-isolation -e /opt/dots_ocr_src
+
+# ---- 5) 设置环境变量（双保险：site-packages + PYTHONPATH）----
 ENV hf_model_path=/weights/DotsOCR
 ENV PYTHONPATH=/opt/dots_ocr_src:/weights:$PYTHONPATH
+
+# ---- 6) 健康检查：验证环境配置和模块导入----
+RUN python - <<'PY'
+import os, sys
+print("== Sanity Check ==")
+print("PYTHONPATH:", os.getenv("PYTHONPATH"))
+print("hf_model_path:", os.getenv("hf_model_path"))
+import dots_ocr
+print("import dots_ocr -> OK")
+PY
 
 # 复制你的处理脚本
 COPY rp_handler.py /

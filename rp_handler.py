@@ -2,9 +2,13 @@ import runpod
 import base64
 import io
 import os
+import sys
 from PIL import Image
 import tempfile
 import logging
+
+# 兜底：确保能找到 dots_ocr 模块（极端情况下环境变量被平台改写时）
+sys.path.insert(0, os.getenv("DOTSOCR_SRC", "/opt/dots_ocr_src"))
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
