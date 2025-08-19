@@ -56,9 +56,6 @@ RUN set -eux; \
   || { echo "download/unzip failed try $i"; rm -f /tmp/dotsocr.zip; sleep 10; }; \
   done
 
-# ---- 2) 把父目录加到 PYTHONPATH，这样 from dots_ocr import ... 可以直接工作----
-ENV PYTHONPATH=/opt:$PYTHONPATH
-
 # ---- 3) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
 ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
@@ -80,8 +77,9 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 4) 运行时让 rp_handler.py 能找到权重----
+# ---- 4) 设置环境变量（放在源码解压和权重下载之后，CMD之前）----
 ENV hf_model_path=/weights/DotsOCR
+ENV PYTHONPATH=/opt/dots_ocr_src:/weights:$PYTHONPATH
 
 # 复制你的处理脚本
 COPY rp_handler.py /
