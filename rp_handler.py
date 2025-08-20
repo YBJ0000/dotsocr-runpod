@@ -7,9 +7,16 @@ from PIL import Image
 import tempfile
 import logging
 
-# 兜底：确保能找到 dots_ocr 模块（极端情况下环境变量被平台改写时）
-sys.path.insert(0, os.getenv("DOTSOCR_SRC", "/opt/dots_ocr_src"))
-sys.path.insert(0, os.path.join(os.getenv("DOTSOCR_SRC", "/opt/dots_ocr_src"), "src"))
+# 根据README指示设置正确的Python路径
+# 1. 添加模型权重目录到Python路径（目录名不要带点）
+weights_dir = os.getenv("hf_model_path", "/weights/DotsOCR")
+if weights_dir not in sys.path:
+    sys.path.insert(0, weights_dir)
+
+# 2. 添加源码目录到Python路径
+src_dir = "/opt/dots_ocr_src"
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -48,8 +55,9 @@ def handler(event):
         
         # Try to import and use dots.ocr
         try:
-            from dots_ocr import DotsOCR
-            logger.info("DotsOCR imported successfully!")
+            # 根据README指示，使用正确的导入方式
+            from dots_ocr import DotsOCRParser
+            logger.info("DotsOCRParser imported successfully!")
             
             # Get model path from environment variable
             hf_model_path = os.getenv("hf_model_path", "/weights/DotsOCR")
@@ -57,7 +65,7 @@ def handler(event):
             
             # Initialize the parser with model path
             logger.info("Initializing DotsOCR parser...")
-            parser = DotsOCR(model_path=hf_model_path)
+            parser = DotsOCRParser(model_path=hf_model_path)
             
             # Decode base64 image
             try:
@@ -76,7 +84,20 @@ def handler(event):
             try:
                 # Process the image with DotsOCR
                 logger.info("Processing image with DotsOCR...")
-                result = parser.parse(temp_image_path, prompt_type=prompt_type)
+                
+                # 根据README指示，使用正确的解析方法
+                if prompt_type == "layout_parsing":
+                    # 解析所有布局信息，包括检测和识别
+                    result = parser.parse(temp_image_path)
+                elif prompt_type == "layout_detection":
+                    # 仅布局检测
+                    result = parser.parse(temp_image_path, prompt="prompt_layout_only_en")
+                elif prompt_type == "text_only":
+                    # 仅文本识别，排除页眉页脚
+                    result = parser.parse(temp_image_path, prompt="prompt_ocr")
+                else:
+                    # 默认使用布局解析
+                    result = parser.parse(temp_image_path)
                 
                 # Extract results
                 markdown_content = result.get('markdown', '')

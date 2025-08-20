@@ -58,6 +58,10 @@ RUN set -eux; \
   || { echo "download/unzip failed try $i"; rm -f /tmp/dotsocr.zip; sleep 10; }; \
   done
 
+# ---- 2) 安装 dots.ocr 包（开发模式）----
+WORKDIR /opt/dots_ocr_src
+RUN pip install -e .
+
 # ---- 3) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
 ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
@@ -79,21 +83,28 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 4) 让 Python 能同时看到源码根目录和 src 布局目录----
-ENV DOTSOCR_SRC=/opt/dots_ocr_src
-ENV PYTHONPATH=/opt/dots_ocr_src:/opt/dots_ocr_src/src:/weights:$PYTHONPATH
+# ---- 4) 设置环境变量（根据README指示）----
+# 设置模型路径环境变量（目录名不要带点）
+ENV hf_model_path=/weights/DotsOCR
+# 设置Python路径，让Python能找到模型和源码
+ENV PYTHONPATH=/weights/DotsOCR:/opt/dots_ocr_src:$PYTHONPATH
 
 # ---- 5) 构建期自检：验证环境配置和模块搜索路径----
 RUN python - <<'PY'
 import os, sys, importlib.util
 print("PYTHONPATH=", os.getenv("PYTHONPATH"))
-for p in sys.path[:5]:
-    print("sys.path head:", p)
 print("hf_model_path=", os.getenv("hf_model_path"))
 print("find_spec(dots_ocr) ->", importlib.util.find_spec("dots_ocr"))
+print("find_spec(DotsOCR) ->", importlib.util.find_spec("DotsOCR"))
+print("Available modules in /weights/DotsOCR:")
+weights_dir = "/weights/DotsOCR"
+if os.path.exists(weights_dir):
+    for item in os.listdir(weights_dir):
+        print(f"  - {item}")
 PY
 
 # 复制你的处理脚本
+WORKDIR /
 COPY rp_handler.py /
 
 CMD ["python3", "-u", "rp_handler.py"]
