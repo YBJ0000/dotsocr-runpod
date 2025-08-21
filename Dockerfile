@@ -15,12 +15,12 @@ RUN pip install -U "pip>=24.0" setuptools wheel && \
   pip install "numpy<2"
 
 # ---- 2) 预先固定大头依赖，避免后续解析带偏----
-# 确保PyTorch和torchvision版本完全匹配，避免nms操作符错误
-RUN pip install "torch==2.3.1" "torchvision==0.18.1" --extra-index-url https://download.pytorch.org/whl/cu121
+# 使用已知兼容的PyTorch版本组合，确保与dots.ocr兼容
+RUN pip install "torch==2.2.0" "torchvision==0.17.0" "torchaudio==2.2.0" --index-url https://download.pytorch.org/whl/cu121
 RUN pip install "opencv-python-headless" "pillow" "scipy"
 
 # 验证PyTorch和torchvision版本匹配
-RUN python -c "import torch, torchvision; print(f'PyTorch: {torch.__version__}'); print(f'TorchVision: {torchvision.__version__}'); assert torch.__version__.startswith('2.3.1'), 'PyTorch version mismatch'; assert torchvision.__version__.startswith('0.18.1'), 'TorchVision version mismatch'"
+RUN python -c "import torch, torchvision; print(f'PyTorch: {torch.__version__}'); print(f'TorchVision: {torchvision.__version__}'); assert torch.__version__.startswith('2.2.0'), 'PyTorch version mismatch'; assert torchvision.__version__.startswith('0.17.0'), 'TorchVision version mismatch'"
 
 # ---- 3) 如果想要一点注意力加速，保留 xformers（有预编译轮子，安装成本低）----
 RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformers==0.0.25.post1 || true
