@@ -1,5 +1,5 @@
-# ✅ 公网可拉取的基础镜像（含 PyTorch/CUDA/cuDNN）
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+# ✅ 使用devel镜像以支持FlashAttention2编译
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn8-devel
 
 WORKDIR /
 
@@ -22,7 +22,13 @@ RUN pip install "opencv-python-headless" "pillow" "scipy"
 # 验证PyTorch和torchvision版本匹配
 RUN python -c "import torch, torchvision; print(f'PyTorch: {torch.__version__}'); print(f'TorchVision: {torchvision.__version__}'); assert torch.__version__.startswith('2.4.0'), 'PyTorch version mismatch'; assert torchvision.__version__.startswith('0.19.0'), 'TorchVision version mismatch'"
 
-# ---- 3) 安装FlashAttention2预编译wheel----
+# ---- 3) 安装FlashAttention2（devel镜像支持编译）----
+# 设置编译环境变量
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+
+# 安装FlashAttention2
 RUN pip install flash-attn==2.8.3 --no-build-isolation
 
 # ---- 4) 安装 dots.ocr 要求的依赖（版本匹配，采纳GPT建议）----
