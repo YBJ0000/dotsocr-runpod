@@ -53,13 +53,17 @@ def _make_parser():
     sig = inspect.signature(DotsOCRParser.__init__)
     logger.info(f"DotsOCRParser.__init__ signature: {sig}")
 
+    # 根据README指示，设置use_hf=True来使用transformers
+    init_kwargs = {"use_hf": True}
+    
     for key in ("model_dir", "model_root", "pretrained_model_name_or_path", "weights_dir", "cache_dir"):
         if key in sig.parameters:
             logger.info(f"Initializing DotsOCRParser with {key}={MODEL_DIR}")
-            return DotsOCRParser(**{key: MODEL_DIR})
+            init_kwargs[key] = MODEL_DIR
+            break
 
-    logger.info("Initializing DotsOCRParser with NO path kwargs")
-    return DotsOCRParser()
+    logger.info(f"Initializing DotsOCRParser with kwargs: {init_kwargs}")
+    return DotsOCRParser(**init_kwargs)
 
 def _get_parser():
     global _PARSER
@@ -126,20 +130,25 @@ def handler(event):
                 # 根据README指示，使用正确的解析方法
                 if prompt_type == "layout_parsing":
                     # 解析所有布局信息，包括检测和识别
-                    result = parser.parse(temp_image_path)
+                    result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_all_en")
                 elif prompt_type == "layout_detection":
                     # 仅布局检测
-                    result = parser.parse(temp_image_path, prompt="prompt_layout_only_en")
+                    result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_only_en")
                 elif prompt_type == "text_only":
                     # 仅文本识别，排除页眉页脚
-                    result = parser.parse(temp_image_path, prompt="prompt_ocr")
+                    result = parser.parse_file(temp_image_path, prompt_mode="prompt_ocr")
                 else:
                     # 默认使用布局解析
-                    result = parser.parse(temp_image_path)
+                    result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_all_en")
                 
-                # Extract results
-                markdown_content = result.get('markdown', '')
-                layout_data = result.get('layout', [])
+                # Extract results - parse_file返回的是列表，取第一个元素
+                if isinstance(result, list) and len(result) > 0:
+                    first_result = result[0]
+                    markdown_content = first_result.get('markdown', '')
+                    layout_data = first_result.get('layout', [])
+                else:
+                    markdown_content = str(result)
+                    layout_data = []
                 
                 logger.info(f"Processing completed. Markdown length: {len(markdown_content)}")
                 
