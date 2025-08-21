@@ -50,22 +50,36 @@ RUN set -eux; \
 # ---- 6) 在含 setup.py 的目录里安装（采纳GPT建议）----
 WORKDIR /opt/dots_ocr_src
 
-# 先装 requirements（去掉 flash-attn 后的）
-RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+# 1) 先钉死 numpy<2（用 constraints 双保险）
+RUN pip install -U "pip>=24.0" setuptools wheel && pip install "numpy<2"
 
-# 然后正常按GPT建议的方式安装源码
-RUN python -m pip install -e . -vvv
+# 2) 过滤上游 requirements.txt 中的 flash-attn，并确保 numpy<2 存在
+RUN set -eux; \
+  # constraints：强制所有后续安装都遵循 numpy<2
+  echo 'numpy<2' > /tmp/pins.txt; \
+  if [ -f requirements.txt ]; then \
+  # 删除 flash-attn 相关行（大小写/连字符都兼容）
+  sed -i -E '/^[[:space:]]*([Ff]lash[-_][Aa]ttn)([[:space:]=<>!].*)?$/d' requirements.txt; \
+  # 若 requirements.txt 里没写 numpy，则追加一行
+  grep -qiE '^[[:space:]]*numpy' requirements.txt || echo 'numpy<2' >> requirements.txt; \
+  # 按约束安装
+  PIP_CONSTRAINT=/tmp/pins.txt pip install -r requirements.txt; \
+  fi
 
-# ---- 7) 立即验证包可导入（采纳GPT建议）----
+# 3) 安装 dots_ocr 源码（editable）
+RUN python -m pip install -e . -vvv --root-user-action=ignore
+
+# 4) 立即验证可导入
 RUN python - <<'PY'
 import importlib.util
 spec = importlib.util.find_spec("dots_ocr")
 print("find_spec('dots_ocr') ->", spec)
 if spec is None:
     raise SystemExit("❌ cannot import dots_ocr")
+print("✅ dots_ocr import OK")
 PY
 
-# ---- 8) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
+# ---- 7) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
 ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
 
@@ -86,13 +100,13 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 9) 设置环境变量（根据README指示，采纳GPT建议）----
+# ---- 8) 设置环境变量（根据README指示，采纳GPT建议）----
 # 设置模型路径环境变量（目录名不要带点）
 ENV hf_model_path=/weights/DotsOCR
 # 设置Python路径，让Python能找到模型和源码（直接赋值，不引用未定义变量）
 ENV PYTHONPATH=/weights/DotsOCR:/opt/dots_ocr_src
 
-# ---- 10) 构建期自检：验证环境配置和模块搜索路径----
+# ---- 9) 构建期自检：验证环境配置和模块搜索路径----
 RUN python - <<'PY'
 import os, sys, importlib.util
 print("PYTHONPATH=", os.getenv("PYTHONPATH"))
