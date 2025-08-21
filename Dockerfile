@@ -22,7 +22,14 @@ RUN pip install "opencv-python-headless" "pillow" "scipy"
 # 验证PyTorch和torchvision版本匹配
 RUN python -c "import torch, torchvision; print(f'PyTorch: {torch.__version__}'); print(f'TorchVision: {torchvision.__version__}'); assert torch.__version__.startswith('2.2.0'), 'PyTorch version mismatch'; assert torchvision.__version__.startswith('0.17.0'), 'TorchVision version mismatch'"
 
-# ---- 3) 如果想要一点注意力加速，保留 xformers（有预编译轮子，安装成本低）----
+# ---- 3) 安装FlashAttention2（解决transformers依赖问题）----
+# 使用预编译的wheel避免编译问题
+RUN pip install flash-attn==2.7.4.post1 --no-build-isolation || \
+  (echo "FlashAttention2 installation failed, trying alternative approach..." && \
+  pip install flash-attn --no-build-isolation || \
+  echo "FlashAttention2 installation failed, will use fallback")
+
+# ---- 4) 如果想要一点注意力加速，保留 xformers（有预编译轮子，安装成本低）----
 RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformers==0.0.25.post1 || true
 
 # ---- 4) 安装 dots.ocr 要求的依赖（版本匹配，采纳GPT建议）----
@@ -81,6 +88,17 @@ print("find_spec('dots_ocr') ->", spec)
 if spec is None:
     raise SystemExit("❌ cannot import dots_ocr")
 print("✅ dots_ocr import OK")
+
+# 检查FlashAttention2是否可用
+try:
+    import flash_attn
+    print("✅ FlashAttention2 available:", flash_attn.__version__)
+except ImportError:
+    print("⚠️ FlashAttention2 not available, will use fallback")
+    # 设置环境变量禁用FlashAttention2
+    import os
+    os.environ["TRANSFORMERS_ATTN_IMPLEMENTATION"] = "sdpa"
+    print("✅ Set TRANSFORMERS_ATTN_IMPLEMENTATION=sdpa")
 PY
 
 # ---- 7) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
@@ -109,6 +127,8 @@ PY
 ENV hf_model_path=/weights/DotsOCR
 # 设置Python路径，让Python能找到模型和源码（直接赋值，不引用未定义变量）
 ENV PYTHONPATH=/weights/DotsOCR:/opt/dots_ocr_src
+# 设置transformers使用SDPA作为备选方案（如果FlashAttention2不可用）
+ENV TRANSFORMERS_ATTN_IMPLEMENTATION=sdpa
 
 # ---- 9) 构建期自检：验证环境配置和模块搜索路径----
 RUN python - <<'PY'
