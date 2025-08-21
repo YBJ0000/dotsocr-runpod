@@ -10,30 +10,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
 
-RUN pip install --upgrade pip setuptools wheel
-# 预先固定大头依赖，避免后续解析带偏
+# ---- 1) 先把 numpy 钉成 <2，避免后续包把它升级到2.x（采纳GPT建议）----
+RUN pip install -U "pip>=24.0" setuptools wheel && \
+  pip install "numpy<2"
+
+# ---- 2) 预先固定大头依赖，避免后续解析带偏----
 RUN pip install "torch==2.3.1" --extra-index-url https://download.pytorch.org/whl/cu121
-RUN pip install "opencv-python-headless" "pillow" "numpy" "scipy" "transformers>=4.41" "huggingface_hub>=0.23"
+RUN pip install "opencv-python-headless" "pillow" "scipy"
 
-# ---- FlashAttention 预编译 wheel（跳过源码编译）----
-# 适配 torch2.3 + cu12.x + py3.10；尝试 cxx11abi TRUE/FALSE 两种二进制
-ARG FA_VER=2.7.4.post1
-ARG PYTAG=cp310-cp310
-RUN set -eux; \
-  BASE="https://github.com/Dao-AILab/flash-attention/releases/download/v${FA_VER}"; \
-  pip install --no-build-isolation \
-  ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiTRUE-${PYTAG}-linux_x86_64.whl \
-  || pip install --no-build-isolation \
-  ${BASE}/flash_attn-${FA_VER}+cu12torch2.3cxx11abiFALSE-${PYTAG}-linux_x86_64.whl \
-  || (export MAX_JOBS=2; pip install --no-build-isolation flash-attn==${FA_VER})
-
-# （可选）装 xformers 作为回退
+# ---- 3) 如果想要一点注意力加速，保留 xformers（有预编译轮子，安装成本低）----
 RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformers==0.0.25.post1 || true
 
-# ---- 其余 Python 依赖（用较稳妥的版本上限）----
-# 说明：transformers 固定到较新但稳定的版本，避免与 modelscope/qwen_vl_utils 冲突
+# ---- 4) 安装 dots.ocr 要求的依赖（版本匹配，采纳GPT建议）----
 RUN pip install \
-  runpod \
+  transformers==4.51.3 \
+  huggingface_hub \
   accelerate \
   gradio \
   gradio_image_annotation \
@@ -44,9 +35,10 @@ RUN pip install \
   matplotlib \
   pdf2image \
   tqdm \
-  requests
+  requests \
+  runpod
 
-# ---- 1) 下载 & 解压到 /opt/dots_ocr_src（采纳GPT建议）----
+# ---- 5) 下载 & 解压到 /opt/dots_ocr_src（采纳GPT建议）----
 RUN set -eux; \
   curl -fL https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/master -o /tmp/dotsocr.zip; \
   file /tmp/dotsocr.zip; \
@@ -55,13 +47,16 @@ RUN set -eux; \
   test -f /opt/dots_ocr_src/setup.py; \
   rm -f /tmp/dotsocr.zip
 
-# ---- 2) 在含 setup.py 的目录里安装（采纳GPT建议）----
+# ---- 6) 在含 setup.py 的目录里安装（采纳GPT建议）----
 WORKDIR /opt/dots_ocr_src
-RUN pip install -U pip setuptools wheel && \
-  if [ -f requirements.txt ]; then pip install -r requirements.txt; fi && \
-  python -m pip install -e . -vvv
 
-# ---- 3) 立即验证包可导入（采纳GPT建议）----
+# 先装 requirements（去掉 flash-attn 后的）
+RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+# 然后正常按GPT建议的方式安装源码
+RUN python -m pip install -e . -vvv
+
+# ---- 7) 立即验证包可导入（采纳GPT建议）----
 RUN python - <<'PY'
 import importlib.util
 spec = importlib.util.find_spec("dots_ocr")
@@ -70,7 +65,7 @@ if spec is None:
     raise SystemExit("❌ cannot import dots_ocr")
 PY
 
-# ---- 4) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
+# ---- 8) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
 ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
 
@@ -91,13 +86,13 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 5) 设置环境变量（根据README指示，采纳GPT建议）----
+# ---- 9) 设置环境变量（根据README指示，采纳GPT建议）----
 # 设置模型路径环境变量（目录名不要带点）
 ENV hf_model_path=/weights/DotsOCR
 # 设置Python路径，让Python能找到模型和源码（直接赋值，不引用未定义变量）
 ENV PYTHONPATH=/weights/DotsOCR:/opt/dots_ocr_src
 
-# ---- 6) 构建期自检：验证环境配置和模块搜索路径----
+# ---- 10) 构建期自检：验证环境配置和模块搜索路径----
 RUN python - <<'PY'
 import os, sys, importlib.util
 print("PYTHONPATH=", os.getenv("PYTHONPATH"))
