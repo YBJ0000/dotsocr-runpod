@@ -22,6 +22,52 @@ if src_dir not in sys.path:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- begin: robust DotsOCR init ---
+import inspect
+
+# 让 huggingface/transformers 优先命中你打包进镜像的权重目录
+os.environ.setdefault("HF_HOME", "/weights")
+os.environ.setdefault("TRANSFORMERS_CACHE", "/weights")
+
+# 允许常见的环境变量别名
+MODEL_DIR = (
+    os.getenv("HF_MODEL_PATH")
+    or os.getenv("MODEL_PATH")
+    or os.getenv("hf_model_path")
+    or "/weights/DotsOCR"
+)
+
+_PARSER = None
+
+def _make_parser():
+    # 优先用高阶 API（通常 README 推荐）
+    try:
+        from dots_ocr import DotsOCR
+        logger.info("Using DotsOCR()")
+        return DotsOCR()           # 不传任何路径参数
+    except Exception as e1:
+        logger.warning(f"DotsOCR() init failed: {e1}. Try DotsOCRParser...")
+
+    # 退回到 Parser：只在确实有匹配参数时才传入 MODEL_DIR
+    from dots_ocr import DotsOCRParser
+    sig = inspect.signature(DotsOCRParser.__init__)
+    logger.info(f"DotsOCRParser.__init__ signature: {sig}")
+
+    for key in ("model_dir", "model_root", "pretrained_model_name_or_path", "weights_dir", "cache_dir"):
+        if key in sig.parameters:
+            logger.info(f"Initializing DotsOCRParser with {key}={MODEL_DIR}")
+            return DotsOCRParser(**{key: MODEL_DIR})
+
+    logger.info("Initializing DotsOCRParser with NO path kwargs")
+    return DotsOCRParser()
+
+def _get_parser():
+    global _PARSER
+    if _PARSER is None:
+        _PARSER = _make_parser()
+    return _PARSER
+# --- end: robust DotsOCR init ---
+
 def handler(event):
     """
     This function processes incoming requests to your Serverless endpoint.
@@ -55,17 +101,9 @@ def handler(event):
         
         # Try to import and use dots.ocr
         try:
-            # 根据README指示，使用正确的导入方式
-            from dots_ocr import DotsOCRParser
-            logger.info("DotsOCRParser imported successfully!")
-            
-            # Get model path from environment variable
-            hf_model_path = os.getenv("hf_model_path", "/weights/DotsOCR")
-            logger.info(f"Using model path: {hf_model_path}")
-            
-            # Initialize the parser with model path
-            logger.info("Initializing DotsOCR parser...")
-            parser = DotsOCRParser(model_path=hf_model_path)
+            # 使用robust的初始化逻辑
+            parser = _get_parser()
+            logger.info("DotsOCR parser initialized successfully!")
             
             # Decode base64 image
             try:
