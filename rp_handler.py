@@ -141,16 +141,60 @@ def handler(event):
                     # 默认使用布局解析
                     result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_all_en")
                 
-                # Extract results - parse_file返回的是列表，取第一个元素
-                if isinstance(result, list) and len(result) > 0:
-                    first_result = result[0]
-                    markdown_content = first_result.get('markdown', '')
-                    layout_data = first_result.get('layout', [])
-                else:
-                    markdown_content = str(result)
-                    layout_data = []
+                # 添加详细的调试信息
+                logger.info(f"Raw result type: {type(result)}")
+                logger.info(f"Raw result: {result}")
                 
-                logger.info(f"Processing completed. Markdown length: {len(markdown_content)}")
+                # 尝试不同的结果解析方法
+                markdown_content = ""
+                layout_data = []
+                
+                if isinstance(result, list) and len(result) > 0:
+                    logger.info(f"Result is a list with {len(result)} items")
+                    first_result = result[0]
+                    logger.info(f"First result type: {type(first_result)}")
+                    logger.info(f"First result: {first_result}")
+                    
+                    # 尝试不同的键名
+                    if isinstance(first_result, dict):
+                        # 尝试常见的键名
+                        for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
+                            if key in first_result:
+                                markdown_content = first_result[key]
+                                logger.info(f"Found markdown content in key '{key}': {len(str(markdown_content))} chars")
+                                break
+                        
+                        # 尝试常见的布局键名
+                        for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
+                            if key in first_result:
+                                layout_data = first_result[key]
+                                logger.info(f"Found layout data in key '{key}': {len(layout_data)} items")
+                                break
+                    else:
+                        # 如果不是字典，直接转换为字符串
+                        markdown_content = str(first_result)
+                        logger.info(f"First result is not dict, converting to string: {len(markdown_content)} chars")
+                elif isinstance(result, dict):
+                    logger.info("Result is a dict")
+                    # 尝试常见的键名
+                    for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
+                        if key in result:
+                            markdown_content = result[key]
+                            logger.info(f"Found markdown content in key '{key}': {len(str(markdown_content))} chars")
+                            break
+                    
+                    for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
+                        if key in result:
+                            layout_data = result[key]
+                            logger.info(f"Found layout data in key '{key}': {len(layout_data)} items")
+                            break
+                else:
+                    # 其他类型，直接转换为字符串
+                    markdown_content = str(result)
+                    logger.info(f"Result is other type, converting to string: {len(markdown_content)} chars")
+                
+                logger.info(f"Final markdown length: {len(markdown_content)}")
+                logger.info(f"Final layout data items: {len(layout_data)}")
                 
                 return {
                     "markdown": markdown_content,
