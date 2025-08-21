@@ -13,11 +13,11 @@ ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
 RUN pip install --upgrade pip setuptools wheel
 # 预先固定大头依赖，避免后续解析带偏
 RUN pip install "torch==2.3.1" --extra-index-url https://download.pytorch.org/whl/cu121
-RUN pip install "opencv-python-headless" "pillow" "numpy" "scipy"
+RUN pip install "opencv-python-headless" "pillow" "numpy" "scipy" "transformers>=4.41" "huggingface_hub>=0.23"
 
 # ---- FlashAttention 预编译 wheel（跳过源码编译）----
 # 适配 torch2.3 + cu12.x + py3.10；尝试 cxx11abi TRUE/FALSE 两种二进制
-ARG FA_VER=2.8.0.post2
+ARG FA_VER=2.7.4.post1
 ARG PYTAG=cp310-cp310
 RUN set -eux; \
   BASE="https://github.com/Dao-AILab/flash-attention/releases/download/v${FA_VER}"; \
@@ -30,10 +30,10 @@ RUN set -eux; \
 # （可选）装 xformers 作为回退
 RUN pip install --extra-index-url https://download.pytorch.org/whl/cu121 xformers==0.0.25.post1 || true
 
-# ---- 安装 dots.ocr 要求的依赖（版本匹配）----
+# ---- 其余 Python 依赖（用较稳妥的版本上限）----
+# 说明：transformers 固定到较新但稳定的版本，避免与 modelscope/qwen_vl_utils 冲突
 RUN pip install \
-  transformers==4.51.3 \
-  huggingface_hub \
+  runpod \
   accelerate \
   gradio \
   gradio_image_annotation \
@@ -44,8 +44,7 @@ RUN pip install \
   matplotlib \
   pdf2image \
   tqdm \
-  requests \
-  runpod
+  requests
 
 # ---- 1) 下载 dots.ocr 源码 zip → /opt/dots_ocr_src（codeload + 严格校验 + 重试）----
 RUN set -eux; \
@@ -59,14 +58,11 @@ RUN set -eux; \
   || { echo "download/unzip failed try $i"; rm -f /tmp/dotsocr.zip; sleep 10; }; \
   done
 
-# ---- 2) 安装 dots.ocr 包（开发模式）- 修复安装问题----
+# ---- 2) 安装 dots.ocr 包（开发模式）- 最小修复----
 WORKDIR /opt/dots_ocr_src
 
-# 先检查Python版本和依赖
-RUN python --version && pip list | grep -E "(torch|transformers|flash-attn)"
-
-# 尝试安装dots.ocr包
-RUN pip install -e . || (echo "Installation failed, trying alternative approach..." && pip install .)
+# 只做最小修改：尝试安装，失败时提供错误信息
+RUN pip install -e . || (echo "dots.ocr installation failed, checking error..." && pip install -e . --verbose)
 
 # ---- 3) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
