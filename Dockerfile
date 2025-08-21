@@ -53,16 +53,21 @@ RUN set -eux; \
   && file /tmp/dotsocr.zip \
   && unzip -tq /tmp/dotsocr.zip \
   && unzip -q /tmp/dotsocr.zip -d /opt \
+  && ls -la /opt/ \
   && mv /opt/dots.ocr-master /opt/dots_ocr_src \
+  && ls -la /opt/dots_ocr_src/ \
   && rm -f /tmp/dotsocr.zip && break \
   || { echo "download/unzip failed try $i"; rm -f /tmp/dotsocr.zip; sleep 10; }; \
   done
 
-# ---- 2) 安装 dots.ocr 包（开发模式）- 最小修复----
+# ---- 2) 安装 dots.ocr 包（开发模式）- 修复目录结构问题----
 WORKDIR /opt/dots_ocr_src
 
-# 只做最小修改：尝试安装，失败时提供错误信息
-RUN pip install -e . || (echo "dots.ocr installation failed, checking error..." && pip install -e . --verbose)
+# 确保在正确的目录中安装
+RUN pwd && ls -la && echo "=== 检查setup.py是否存在 ===" && ls -la setup.py || echo "setup.py不存在，尝试查找..." && find . -name "setup.py" -type f
+
+# 尝试安装dots.ocr包
+RUN pip install -e . || (echo "dots.ocr installation failed, trying alternative approach..." && pip install .)
 
 # ---- 3) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
