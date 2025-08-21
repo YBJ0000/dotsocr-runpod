@@ -155,21 +155,55 @@ def handler(event):
                     logger.info(f"First result type: {type(first_result)}")
                     logger.info(f"First result: {first_result}")
                     
-                    # 尝试不同的键名
+                    # 根据日志发现，parse_file返回的是文件路径，不是直接内容
                     if isinstance(first_result, dict):
-                        # 尝试常见的键名
-                        for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
-                            if key in first_result:
-                                markdown_content = first_result[key]
-                                logger.info(f"Found markdown content in key '{key}': {len(str(markdown_content))} chars")
-                                break
+                        # 检查是否有markdown文件路径
+                        if 'md_content_path' in first_result:
+                            md_file_path = first_result['md_content_path']
+                            logger.info(f"Found markdown file path: {md_file_path}")
+                            
+                            # 读取markdown文件内容
+                            try:
+                                if os.path.exists(md_file_path):
+                                    with open(md_file_path, 'r', encoding='utf-8') as f:
+                                        markdown_content = f.read()
+                                    logger.info(f"Successfully read markdown file: {len(markdown_content)} chars")
+                                else:
+                                    logger.warning(f"Markdown file not found: {md_file_path}")
+                            except Exception as e:
+                                logger.error(f"Failed to read markdown file: {e}")
                         
-                        # 尝试常见的布局键名
-                        for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
-                            if key in first_result:
-                                layout_data = first_result[key]
-                                logger.info(f"Found layout data in key '{key}': {len(layout_data)} items")
-                                break
+                        # 检查是否有布局信息文件路径
+                        if 'layout_info_path' in first_result:
+                            layout_file_path = first_result['layout_info_path']
+                            logger.info(f"Found layout info file path: {layout_file_path}")
+                            
+                            # 读取布局信息JSON文件
+                            try:
+                                if os.path.exists(layout_file_path):
+                                    import json
+                                    with open(layout_file_path, 'r', encoding='utf-8') as f:
+                                        layout_data = json.load(f)
+                                    logger.info(f"Successfully read layout info file: {len(layout_data)} items")
+                                else:
+                                    logger.warning(f"Layout info file not found: {layout_file_path}")
+                            except Exception as e:
+                                logger.error(f"Failed to read layout info file: {e}")
+                        
+                        # 如果没有文件路径，尝试其他键名（向后兼容）
+                        if not markdown_content:
+                            for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
+                                if key in first_result:
+                                    markdown_content = first_result[key]
+                                    logger.info(f"Found markdown content in key '{key}': {len(str(markdown_content))} chars")
+                                    break
+                        
+                        if not layout_data:
+                            for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
+                                if key in first_result:
+                                    layout_data = first_result[key]
+                                    logger.info(f"Found layout data in key '{key}': {len(layout_data)} items")
+                                    break
                     else:
                         # 如果不是字典，直接转换为字符串
                         markdown_content = str(first_result)
