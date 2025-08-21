@@ -5,7 +5,7 @@ WORKDIR /
 
 # ---- 0) 系统与Python依赖（与你现有保持一致）----
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  git curl wget unzip poppler-utils ca-certificates libglib2.0-0 libgl1 build-essential \
+  git curl wget unzip file poppler-utils ca-certificates libglib2.0-0 libgl1 build-essential \
   && rm -rf /var/lib/apt/lists/*
 
 ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
@@ -46,30 +46,31 @@ RUN pip install \
   tqdm \
   requests
 
-# ---- 1) 下载 dots.ocr 源码 zip → /opt/dots_ocr_src（codeload + 严格校验 + 重试）----
+# ---- 1) 下载 & 解压到 /opt/dots_ocr_src（采纳GPT建议）----
 RUN set -eux; \
-  for i in 1 2 3; do \
-  curl -fsSL "https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/master" -o /tmp/dotsocr.zip \
-  && file /tmp/dotsocr.zip \
-  && unzip -tq /tmp/dotsocr.zip \
-  && unzip -q /tmp/dotsocr.zip -d /opt \
-  && ls -la /opt/ \
-  && mv /opt/dots.ocr-master /opt/dots_ocr_src \
-  && ls -la /opt/dots_ocr_src/ \
-  && rm -f /tmp/dotsocr.zip && break \
-  || { echo "download/unzip failed try $i"; rm -f /tmp/dotsocr.zip; sleep 10; }; \
-  done
+  curl -fL https://codeload.github.com/rednote-hilab/dots.ocr/zip/refs/heads/master -o /tmp/dotsocr.zip; \
+  file /tmp/dotsocr.zip; \
+  unzip -q /tmp/dotsocr.zip -d /opt; \
+  mv /opt/dots.ocr-master /opt/dots_ocr_src; \
+  test -f /opt/dots_ocr_src/setup.py; \
+  rm -f /tmp/dotsocr.zip
 
-# ---- 2) 安装 dots.ocr 包（开发模式）- 修复目录结构问题----
+# ---- 2) 在含 setup.py 的目录里安装（采纳GPT建议）----
 WORKDIR /opt/dots_ocr_src
+RUN pip install -U pip setuptools wheel && \
+  if [ -f requirements.txt ]; then pip install -r requirements.txt; fi && \
+  python -m pip install -e . -vvv
 
-# 确保在正确的目录中安装
-RUN pwd && ls -la && echo "=== 检查setup.py是否存在 ===" && ls -la setup.py || echo "setup.py不存在，尝试查找..." && find . -name "setup.py" -type f
+# ---- 3) 立即验证包可导入（采纳GPT建议）----
+RUN python - <<'PY'
+import importlib.util
+spec = importlib.util.find_spec("dots_ocr")
+print("find_spec('dots_ocr') ->", spec)
+if spec is None:
+    raise SystemExit("❌ cannot import dots_ocr")
+PY
 
-# 尝试安装dots.ocr包
-RUN pip install -e . || (echo "dots.ocr installation failed, trying alternative approach..." && pip install .)
-
-# ---- 3) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
+# ---- 4) 用 huggingface_hub 把模型权重打进镜像（避免运行时再拉）----
 ARG HF_TOKEN=""
 ENV HUGGINGFACE_HUB_TOKEN=$HF_TOKEN
 
@@ -90,13 +91,13 @@ for i in range(3):
         time.sleep(10)
 PY
 
-# ---- 4) 设置环境变量（根据README指示）----
+# ---- 5) 设置环境变量（根据README指示，采纳GPT建议）----
 # 设置模型路径环境变量（目录名不要带点）
 ENV hf_model_path=/weights/DotsOCR
-# 设置Python路径，让Python能找到模型和源码
-ENV PYTHONPATH=/weights/DotsOCR:/opt/dots_ocr_src:$PYTHONPATH
+# 设置Python路径，让Python能找到模型和源码（直接赋值，不引用未定义变量）
+ENV PYTHONPATH=/weights/DotsOCR:/opt/dots_ocr_src
 
-# ---- 5) 构建期自检：验证环境配置和模块搜索路径----
+# ---- 6) 构建期自检：验证环境配置和模块搜索路径----
 RUN python - <<'PY'
 import os, sys, importlib.util
 print("PYTHONPATH=", os.getenv("PYTHONPATH"))
