@@ -4,18 +4,3 @@
 # macOS系统文件
 .DS_Store
 
-# 测试图片
-*.jpg
-*.png
-*.jpeg
-*.gif
-*.bmp
-*.tiff
-*.webp
-*.ico
-*.svg
-*.heic
-
-# 测试文档
-*.pdf
-

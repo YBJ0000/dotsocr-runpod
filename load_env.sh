@@ -47,6 +47,4 @@ if [ -z "$RUNPOD_ENDPOINT_ID" ]; then
     echo "⚠️  警告：RUNPOD_ENDPOINT_ID 未设置"
 fi
 
-echo ""
-echo "💡 提示：使用 'source ./load_env.sh' 来加载环境变量到当前shell"
-echo "或者使用 '. ./load_env.sh' 来加载环境变量"
+

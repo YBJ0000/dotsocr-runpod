@@ -7,6 +7,7 @@
 if [ -z "$RUNPOD_ENDPOINT_ID" ]; then
     echo "错误：请设置环境变量 RUNPOD_ENDPOINT_ID"
     echo "使用方法：export RUNPOD_ENDPOINT_ID='your_endpoint_id_here'"
+    echo "或者使用 'source ./load_env.sh' 来加载环境变量"
     exit 1
 fi
 ENDPOINT_ID="$RUNPOD_ENDPOINT_ID"
@@ -15,6 +16,7 @@ ENDPOINT_ID="$RUNPOD_ENDPOINT_ID"
 if [ -z "$RUNPOD_API_KEY" ]; then
     echo "错误：请设置环境变量 RUNPOD_API_KEY"
     echo "使用方法：export RUNPOD_API_KEY='your_api_key_here'"
+    echo "或者使用 'source ./load_env.sh' 来加载环境变量"
     exit 1
 fi
 API_KEY="$RUNPOD_API_KEY"
