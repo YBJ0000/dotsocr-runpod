@@ -152,139 +152,210 @@ def handler(event):
         return {"error": f"Processing failed: {str(e)}"}
 
 def process_pdf_with_dotsocr(parser, pdf_base64, prompt_type):
-    """Process PDF with DotsOCR and return markdown and layout data"""
+    """Process PDF with DotsOCR and return markdown and layout data with multi-page support"""
     try:
         # Decode base64 PDF
         pdf_bytes = base64.b64decode(pdf_base64)
-        pdf_stream = io.BytesIO(pdf_bytes)
         
-        # Save PDF to temporary file for processing
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-            tmp_file.write(pdf_bytes)
-            temp_pdf_path = tmp_file.name
+        # 使用PyMuPDF打开PDF文档
+        pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        total_pages = len(pdf_document)
+        logger.info(f"PDF opened successfully, total pages: {total_pages}")
         
-        try:
-            # Process the PDF with DotsOCR
-            logger.info("Processing PDF with DotsOCR...")
+        if total_pages == 0:
+            return {"error": "PDF document has no pages"}
+        
+        # 存储所有页面的结果
+        all_markdown_content = []
+        all_layout_data = []
+        
+        # 逐页处理PDF
+        for page_number in range(total_pages):
+            logger.info(f"Processing page {page_number + 1}/{total_pages}")
             
-            # 根据README指示，使用正确的解析方法
-            if prompt_type == "layout_parsing":
-                # 解析所有布局信息，包括检测和识别
-                result = parser.parse_file(temp_pdf_path, prompt_mode="prompt_layout_all_en")
-            elif prompt_type == "layout_detection":
-                # 仅布局检测
-                result = parser.parse_file(temp_pdf_path, prompt_mode="prompt_layout_only_en")
-            elif prompt_type == "text_only":
-                # 仅文本识别，排除页眉页脚
-                result = parser.parse_file(temp_pdf_path, prompt_mode="prompt_ocr")
-            else:
-                # 默认使用布局解析
-                result = parser.parse_file(temp_pdf_path, prompt_mode="prompt_layout_all_en")
-            
-            # 添加详细的调试信息
-            logger.info(f"Raw result type: {type(result)}")
-            logger.info(f"Raw result: {result}")
-            
-            # 尝试不同的结果解析方法
-            markdown_content = ""
-            layout_data = []
-            
-            if isinstance(result, list) and len(result) > 0:
-                logger.info(f"Result is a list with {len(result)} items")
-                first_result = result[0]
-                logger.info(f"First result type: {type(first_result)}")
-                logger.info(f"First result: {first_result}")
+            try:
+                # 获取当前页面
+                page = pdf_document.load_page(page_number)
                 
-                # 根据日志发现，parse_file返回的是文件路径，不是直接内容
-                if isinstance(first_result, dict):
-                    # 检查是否有markdown文件路径
-                    if 'md_content_path' in first_result:
-                        md_file_path = first_result['md_content_path']
-                        logger.info(f"Found markdown file path: {md_file_path}")
-                        
-                        # 读取markdown文件内容
-                        try:
-                            if os.path.exists(md_file_path):
-                                with open(md_file_path, 'r', encoding='utf-8') as f:
-                                    markdown_content = f.read()
-                                logger.info(f"Successfully read markdown file: {len(markdown_content)} chars")
-                            else:
-                                logger.warning(f"Markdown file not found: {md_file_path}")
-                        except Exception as e:
-                            logger.error(f"Failed to read markdown file: {e}")
-                    
-                    # 检查是否有布局信息文件路径
-                    if 'layout_info_path' in first_result:
-                        layout_file_path = first_result['layout_info_path']
-                        logger.info(f"Found layout info file path: {layout_file_path}")
-                        
-                        # 读取布局信息JSON文件
-                        try:
-                            if os.path.exists(layout_file_path):
-                                import json
-                                with open(layout_file_path, 'r', encoding='utf-8') as f:
-                                    layout_data = json.load(f)
-                                logger.info(f"Successfully read layout info file: {len(layout_data)} items")
-                            else:
-                                logger.warning(f"Layout info file not found: {layout_file_path}")
-                        except Exception as e:
-                            logger.error(f"Failed to read layout info file: {e}")
-                    
-                    # 如果没有文件路径，尝试其他键名（向后兼容）
-                    if not markdown_content:
-                        for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
-                            if key in first_result:
-                                markdown_content = first_result[key]
-                                logger.info(f"Found markdown content in key '{key}': {len(str(markdown_content))} chars")
-                                break
-                    
-                    if not layout_data:
-                        for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
-                            if key in first_result:
-                                layout_data = first_result[key]
-                                logger.info(f"Found layout data in key '{key}': {len(layout_data)} items")
-                                break
-                else:
-                    # 如果不是字典，直接转换为字符串
-                    markdown_content = str(first_result)
-                    logger.info(f"First result is not dict, converting to string: {len(markdown_content)} chars")
-            elif isinstance(result, dict):
-                logger.info("Result is a dict")
-                # 尝试常见的键名
-                for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
-                    if key in result:
-                        markdown_content = result[key]
-                        logger.info(f"Found markdown content in key '{key}': {len(str(markdown_content))} chars")
-                        break
+                # 将页面转换为图像（推荐DPI 200，根据README建议）
+                # 使用更高的DPI以获得更好的识别效果
+                zoom_factor = 2.0  # 对应约200 DPI
+                mat = fitz.Matrix(zoom_factor, zoom_factor)
+                pix = page.get_pixmap(matrix=mat)
                 
-                for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
-                    if key in result:
-                        layout_data = result[key]
-                        logger.info(f"Found layout data in key '{key}': {len(layout_data)} items")
-                        break
-            else:
-                # 其他类型，直接转换为字符串
-                markdown_content = str(result)
-                logger.info(f"Result is other type, converting to string: {len(markdown_content)} chars")
-            
-            logger.info(f"Final markdown length: {len(markdown_content)}")
-            logger.info(f"Final layout data items: {len(layout_data)}")
-            
-            return {
-                "markdown": markdown_content,
-                "layout_data": layout_data,
-                "status": "success",
-                "input_type": "pdf"
-            }
-            
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_pdf_path):
-                os.unlink(temp_pdf_path)
+                # 转换为PIL Image
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                
+                # 保存页面图像到临时文件
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                    img.save(tmp_file.name, 'PNG')
+                    temp_image_path = tmp_file.name
+                
+                try:
+                    # 使用DotsOCR处理当前页面图像
+                    logger.info(f"Processing page {page_number + 1} image with DotsOCR...")
+                    
+                    # 根据README指示，使用正确的解析方法
+                    if prompt_type == "layout_parsing":
+                        # 解析所有布局信息，包括检测和识别
+                        page_result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_all_en")
+                    elif prompt_type == "layout_detection":
+                        # 仅布局检测
+                        page_result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_only_en")
+                    elif prompt_type == "text_only":
+                        # 仅文本识别，排除页眉页脚
+                        page_result = parser.parse_file(temp_image_path, prompt_mode="prompt_ocr")
+                    else:
+                        # 默认使用布局解析
+                        page_result = parser.parse_file(temp_image_path, prompt_mode="prompt_layout_all_en")
+                    
+                    # 处理当前页面的结果
+                    page_markdown, page_layout = extract_content_from_result(page_result, page_number + 1)
+                    
+                    # 添加页面标题
+                    page_header = f"\n\n## Page {page_number + 1}\n\n"
+                    all_markdown_content.append(page_header + page_markdown)
+                    all_layout_data.extend(page_layout)
+                    
+                    logger.info(f"Page {page_number + 1} processed successfully")
+                    
+                finally:
+                    # 清理临时图像文件
+                    if os.path.exists(temp_image_path):
+                        os.unlink(temp_image_path)
+                        
+            except Exception as e:
+                logger.error(f"Error processing page {page_number + 1}: {str(e)}")
+                # 继续处理下一页，但记录错误
+                error_content = f"\n\n## Page {page_number + 1} - Processing Error\n\nError: {str(e)}\n\n"
+                all_markdown_content.append(error_content)
+        
+        # 关闭PDF文档
+        pdf_document.close()
+        
+        # 合并所有页面的内容
+        combined_markdown = "".join(all_markdown_content)
+        combined_layout = all_layout_data
+        
+        logger.info(f"PDF processing completed. Total pages: {total_pages}")
+        logger.info(f"Final markdown length: {len(combined_markdown)}")
+        logger.info(f"Final layout data items: {len(combined_layout)}")
+        
+        return {
+            "markdown": combined_markdown,
+            "layout_data": combined_layout,
+            "status": "success",
+            "input_type": "pdf",
+            "total_pages": total_pages,
+            "pages_processed": len([c for c in all_markdown_content if "Page" in c and "Error" not in c])
+        }
                 
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
         return {"error": f"PDF processing failed: {str(e)}"}
+
+def extract_content_from_result(result, page_number):
+    """Extract markdown content and layout data from DotsOCR result"""
+    markdown_content = ""
+    layout_data = []
+    
+    try:
+        if isinstance(result, list) and len(result) > 0:
+            logger.info(f"Page {page_number} result is a list with {len(result)} items")
+            first_result = result[0]
+            
+            if isinstance(first_result, dict):
+                # 检查是否有markdown文件路径
+                if 'md_content_path' in first_result:
+                    md_file_path = first_result['md_content_path']
+                    logger.info(f"Page {page_number} - Found markdown file path: {md_file_path}")
+                    
+                    try:
+                        if os.path.exists(md_file_path):
+                            with open(md_file_path, 'r', encoding='utf-8') as f:
+                                markdown_content = f.read()
+                            logger.info(f"Page {page_number} - Successfully read markdown file: {len(markdown_content)} chars")
+                        else:
+                            logger.warning(f"Page {page_number} - Markdown file not found: {md_file_path}")
+                    except Exception as e:
+                        logger.error(f"Page {page_number} - Failed to read markdown file: {e}")
+                
+                # 检查是否有布局信息文件路径
+                if 'layout_info_path' in first_result:
+                    layout_file_path = first_result['layout_info_path']
+                    logger.info(f"Page {page_number} - Found layout info file path: {layout_file_path}")
+                    
+                    try:
+                        if os.path.exists(layout_file_path):
+                            import json
+                            with open(layout_file_path, 'r', encoding='utf-8') as f:
+                                page_layout = json.load(f)
+                            # 为每个布局元素添加页面信息
+                            for item in page_layout:
+                                if isinstance(item, dict):
+                                    item['page_number'] = page_number
+                            layout_data.extend(page_layout)
+                            logger.info(f"Page {page_number} - Successfully read layout info file: {len(page_layout)} items")
+                        else:
+                            logger.warning(f"Page {page_number} - Layout info file not found: {layout_file_path}")
+                    except Exception as e:
+                        logger.error(f"Page {page_number} - Failed to read layout info file: {e}")
+                
+                # 如果没有文件路径，尝试其他键名（向后兼容）
+                if not markdown_content:
+                    for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
+                        if key in first_result:
+                            markdown_content = first_result[key]
+                            logger.info(f"Page {page_number} - Found markdown content in key '{key}': {len(str(markdown_content))} chars")
+                            break
+                
+                if not layout_data:
+                    for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
+                        if key in first_result:
+                            page_layout = first_result[key]
+                            # 为每个布局元素添加页面信息
+                            if isinstance(page_layout, list):
+                                for item in page_layout:
+                                    if isinstance(item, dict):
+                                        item['page_number'] = page_number
+                            layout_data.extend(page_layout if isinstance(page_layout, list) else [page_layout])
+                            logger.info(f"Page {page_number} - Found layout data in key '{key}': {len(layout_data)} items")
+                            break
+            else:
+                # 如果不是字典，直接转换为字符串
+                markdown_content = str(first_result)
+                logger.info(f"Page {page_number} - First result is not dict, converting to string: {len(markdown_content)} chars")
+                
+        elif isinstance(result, dict):
+            logger.info(f"Page {page_number} result is a dict")
+            # 尝试常见的键名
+            for key in ['markdown', 'markdown_content', 'content', 'text', 'result']:
+                if key in result:
+                    markdown_content = result[key]
+                    logger.info(f"Page {page_number} - Found markdown content in key '{key}': {len(str(markdown_content))} chars")
+                    break
+            
+            for key in ['layout', 'layout_data', 'data', 'elements', 'boxes']:
+                if key in result:
+                    page_layout = result[key]
+                    # 为每个布局元素添加页面信息
+                    if isinstance(page_layout, list):
+                        for item in page_layout:
+                            if isinstance(item, dict):
+                                item['page_number'] = page_number
+                    layout_data.extend(page_layout if isinstance(page_layout, list) else [page_layout])
+                    logger.info(f"Page {page_number} - Found layout data in key '{key}': {len(layout_data)} items")
+                    break
+        else:
+            # 其他类型，直接转换为字符串
+            markdown_content = str(result)
+            logger.info(f"Page {page_number} - Result is other type, converting to string: {len(markdown_content)} chars")
+            
+    except Exception as e:
+        logger.error(f"Error extracting content from page {page_number} result: {str(e)}")
+        markdown_content = f"Error processing page {page_number}: {str(e)}"
+    
+    return markdown_content, layout_data
 
 def process_image_with_dotsocr(parser, image_base64, prompt_type):
     """Process image with DotsOCR and return markdown and layout data"""
