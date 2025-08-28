@@ -7,8 +7,13 @@ Integrate the dots.ocr model into RunPod Serverless Worker to implement OCR proc
 - `rp_handler.py` - Main processing logic
 - `Dockerfile` - Container environment configuration
 - `.github/workflows/docker-publish.yml` - GitHub Actions configuration, Docker Hub integration
-- `test_local.sh` - Local testing script
+- `test_local.sh` - Local testing script for images
+- `test_pdf_local.sh` - Local testing script for PDFs
 - `load_env.sh` - Environment variable loading script
+- `.env` - Environment variables file (generate with `cp env.example .env`)
+- `env.example` - Environment variables example file
+- `.gitignore` - Ignore environment variables and system files
+- `.dockerignore` - Ignore local virtual environment and irrelevant files
 
 ## Deployment Process
 
@@ -54,55 +59,45 @@ Use the following command to load environment variables into the current shell:
 source ./load_env.sh
 ```
 
-Or use the shorthand form:
-
-```bash
-. ./load_env.sh
-```
-
 ### 3. Execute Testing
 
-Run the test script, passing in the image path:
+Run the test script, passing in the image or PDF path:
 
 ```bash
+# For images
 ./test_local.sh <image_path>
+# For PDFs
+./test_pdf_local.sh <pdf_path>
 ```
 
-**Example:**
+**Examples:**
 ```bash
+# For images
 ./test_local.sh ./HeyJude.png
+# For PDFs
+./test_pdf_local.sh ./HeyJude.pdf
 ```
 
-## Testing Strategy
+**Cold Start**: Due to RunPod's cold start mechanism, it's recommended to choose the async method for the first test, otherwise the terminal will wait indefinitely for results.
 
-### First Test (Cold Start)
+### 4. View Async Test Results
 
-Due to RunPod's cold start mechanism, it's recommended to test in the following order:
-
-1. **Send Async Request First** - Choose option 2, submit task to queue
-2. **Wait for Async Task Completion** - Check task status in [RunPod Console](https://console.runpod.io/serverless/user/endpoint/{endpoint_id}?tab=requests)
-3. **Then Send Sync Request** - Choose option 1, wait for result to return directly
-
-### Async Request Monitoring
-
-Async request status can be viewed in RunPod Console:
-```
-https://console.runpod.io/serverless/user/endpoint/{endpoint_id}?tab=requests
+Use curl command to monitor async test status:
+```bash
+curl -X GET "https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/status/{id}" \
+  -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
+  -H "Content-Type: application/json"
 ```
 
-Replace `{endpoint_id}` with your actual endpoint ID.
+> `RUNPOD_ENDPOINT_ID` and `RUNPOD_API_KEY` are configured in the `.env` file, so you need to execute `source ./load_env.sh` first.
 
-## Request Types
-
-### Sync Request (runsync)
-- Wait for result to return directly
-- Suitable for small images and fast processing
-- Has timeout limits
-
-### Async Request (run)
-- Submit task to queue
-- Suitable for large images and complex processing
-- Can monitor status in Console
+`{id}` can be found in the JSON returned after the async request completes, for example:
+```json
+{
+    "id": "97dcf8ec-647f-49f9-aeb4-6d75c2ee79d4-e2",
+    "status": "IN_PROGRESS"
+}
+```
 
 ## Troubleshooting
 
@@ -115,8 +110,9 @@ If you encounter errors about environment variables not being set, please check:
 ### Permission Issues
 Ensure test scripts have execution permissions:
 ```bash
-chmod +x test_local.sh
 chmod +x load_env.sh
+chmod +x test_local.sh
+chmod +x test_pdf_local.sh
 ```
 
 ### API Errors
