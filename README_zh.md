@@ -7,8 +7,14 @@
 - `rp_handler.py` - 主要处理逻辑
 - `Dockerfile` - 容器环境配置
 - `.github/workflows/docker-publish.yml` - GitHub Actions 配置、Docker Hub 集成
-- `test_local.sh` - 本地测试脚本
+- `test_local.sh` - 本地测试图片脚本
+- `test_pdf_local.sh` - 本地测试PDF脚本
 - `load_env.sh` - 环境变量加载脚本
+- `.env` - 环境变量文件(可用 `cp env.example .env` 生成)
+- `env.example` - 环境变量示例文件
+- `.gitignore` - 忽略环境变量和系统文件
+- `.dockerignore` - 忽略本地虚拟环境和无关文件
+
 
 ## 部署流程
 
@@ -54,55 +60,45 @@ RUNPOD_BASE_URL=https://api.runpod.ai/v2
 source ./load_env.sh
 ```
 
-或者使用简写形式：
-
-```bash
-. ./load_env.sh
-```
-
 ### 3. 执行测试
 
-运行测试脚本，传入图片路径：
+运行测试脚本，传入图片或者 PDF 路径：
 
 ```bash
+# 图片
 ./test_local.sh <image_path>
+# PDF
+./test_pdf_local.sh <pdf_path>
 ```
 
 **示例：**
 ```bash
+# 图片
 ./test_local.sh ./HeyJude.png
+# PDF
+./test_pdf_local.sh ./HeyJude.pdf
 ```
 
-## 测试策略
+**冷启动**：因为 RunPod 的冷启动机制，首次测试建议选择异步方法，否则终端会一直等待结果。
 
-### 第一次测试（冷启动）
+### 4. 查看异步测试结果
 
-由于 RunPod 的冷启动机制，建议按以下顺序测试：
-
-1. **先发送异步请求** - 选择选项 2，提交任务到队列
-2. **等待异步任务完成** - 在 [RunPod Console](https://console.runpod.io/serverless/user/endpoint/{endpoint_id}?tab=requests) 查看任务状态
-3. **再发送同步请求** - 选择选项 1，直接等待结果返回
-
-### 异步请求监控
-
-异步请求的状态可以在 RunPod Console 中查看：
-```
-https://console.runpod.io/serverless/user/endpoint/{endpoint_id}?tab=requests
+使用 curl 命令监控异步测试状态：
+```bash
+curl -X GET "https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/status/{id}" \
+  -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
+  -H "Content-Type: application/json"
 ```
 
-将 `{endpoint_id}` 替换为你的实际 endpoint ID。
+> `RUNPOD_ENDPOINT_ID` 和 `RUNPOD_API_KEY` 在 `.env` 文件中配置，所以要先执行`source ./load_env.sh`才行。
 
-## 请求类型
-
-### 同步请求 (runsync)
-- 等待结果直接返回
-- 适合小图片和快速处理
-- 有超时限制
-
-### 异步请求 (run)
-- 提交任务到队列
-- 适合大图片和复杂处理
-- 可以在 Console 中监控状态
+`{id}` 在异步请求结束返回的 JSON 中可以找到，例如：
+```json
+{
+    "id": "97dcf8ec-647f-49f9-aeb4-6d75c2ee79d4-e2",
+    "status": "IN_PROGRESS"
+}
+```
 
 ## 故障排除
 
@@ -115,8 +111,9 @@ https://console.runpod.io/serverless/user/endpoint/{endpoint_id}?tab=requests
 ### 权限问题
 确保测试脚本有执行权限：
 ```bash
-chmod +x test_local.sh
 chmod +x load_env.sh
+chmod +x test_local.sh
+chmod +x test_pdf_local.sh
 ```
 
 ### API 错误
