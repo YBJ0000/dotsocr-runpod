@@ -1,0 +1,357 @@
+{
+  "delayTime": 6771,
+  "executionTime": 65047,
+  "id": "eccbacb1-372e-4da5-a374-0197ede39396-u1",
+  "output": {
+    "input_type": "pdf",
+    "layout_data": [
+      {
+        "bbox": [
+          57,
+          17,
+          231,
+          93
+        ],
+        "category": "Page-header",
+        "page_number": 1,
+        "text": "qml\npathology"
+      },
+      {
+        "bbox": [
+          258,
+          31,
+          584,
+          88
+        ],
+        "category": "Page-header",
+        "page_number": 1,
+        "text": "Healius Pathology Pty Ltd (ABN 84 007 190 043)\nAPA No. 000042 t/a QML Pathology\n11 Riverview Place, Metroplex on Gateway, Murarrie Qld 4172\nPh (07) 3121 4444"
+      },
+      {
+        "bbox": [
+          725,
+          40,
+          1160,
+          93
+        ],
+        "category": "Title",
+        "page_number": 1,
+        "text": "# Pathology Report"
+      },
+      {
+        "bbox": [
+          57,
+          217,
+          233,
+          254
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "CMO\nMEDICAL PROVIDER"
+      },
+      {
+        "bbox": [
+          479,
+          459,
+          1154,
+          479
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "For Surgery Use\nUrgent ☐ Ring Patient ☐ Make Appointment ☐ Note in Chart ☐ File ☐"
+      },
+      {
+        "bbox": [
+          59,
+          494,
+          229,
+          513
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Patient DOE, JOHN"
+      },
+      {
+        "bbox": [
+          822,
+          494,
+          882,
+          511
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "UR No."
+      },
+      {
+        "bbox": [
+          59,
+          521,
+          383,
+          539
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Patient Address MEDICAL PROVIDER"
+      },
+      {
+        "bbox": [
+          59,
+          548,
+          483,
+          567
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Sex M Age 64 years DOB 24/07/1960"
+      },
+      {
+        "bbox": [
+          656,
+          548,
+          973,
+          567
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Requested 03/07/2025"
+      },
+      {
+        "bbox": [
+          59,
+          575,
+          381,
+          594
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Report For MEDICAL PROVIDER CMO"
+      },
+      {
+        "bbox": [
+          656,
+          575,
+          973,
+          594
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Collected 03/07/2025 12:00 AM"
+      },
+      {
+        "bbox": [
+          59,
+          602,
+          181,
+          622
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Ref. by/copy to"
+      },
+      {
+        "bbox": [
+          656,
+          602,
+          973,
+          622
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Reported 04/07/2025 11:12 AM"
+      },
+      {
+        "bbox": [
+          117,
+          696,
+          421,
+          712
+        ],
+        "category": "Section-header",
+        "page_number": 1,
+        "text": "## CUMULATIVE LIPID RISK REPORT"
+      },
+      {
+        "bbox": [
+          117,
+          717,
+          930,
+          1023
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Date 22/08/23 14/08/24 03/07/25\nTime 08:09 00:00 00:00\nLab No 73407873 76197912 92828752\n         RANDOM RANDOM RANDOM\n\nTarget if\nHIGH RISK\n\nTotal Cholesterol      6.0   6.1   5.1 mmol/L (below 4.0)\nTriglycerides         1.5   2.3   1.8 mmol/L (below 2.0)\n\nCHOLESTEROL FRACTIONS\nHDL                   1.38  1.34  1.09 mmol/L (above 1.0)\nLDL (calculated)*      3.94  3.71  3.19 mmol/L (below 2.5)\nNon-HDL cholesterol*   4.62  4.76  4.01 mmol/L (below 3.3)\nTotal/HDL ratio**     4.3   4.6   4.7"
+      },
+      {
+        "bbox": [
+          129,
+          1047,
+          883,
+          1068
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "* Secondary prevention LDL and non-HDL cholesterol targets are lower."
+      },
+      {
+        "bbox": [
+          129,
+          1069,
+          819,
+          1109
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "** The ratio is for use with the cardiovascular risk calculator.\nWeb-search: \"Australian cardiovascular risk calculator\""
+      },
+      {
+        "bbox": [
+          118,
+          1132,
+          931,
+          1175
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "92828752 Treatment is recommended if clinically indicated or if calculated risk exceeds 15% absolute risk of CVD events over 5 years."
+      },
+      {
+        "bbox": [
+          225,
+          1197,
+          808,
+          1218
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "NVDPA 2012 Target ranges refer to HIGH RISK PATIENTS."
+      },
+      {
+        "bbox": [
+          225,
+          1242,
+          864,
+          1305
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "As of 7/3/22 LDL will no longer be measured routinely. LDL results will be calculated, in accordance with National harmonisation."
+      },
+      {
+        "bbox": [
+          1094,
+          669,
+          1137,
+          1018
+        ],
+        "category": "Text",
+        "page_number": 1,
+        "text": "Pathology Report"
+      },
+      {
+        "bbox": [
+          1166,
+          1470,
+          1178,
+          1564
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "QML RTE001-AV4"
+      },
+      {
+        "bbox": [
+          36,
+          1585,
+          92,
+          1606
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "1 of 1"
+      },
+      {
+        "bbox": [
+          14,
+          1615,
+          107,
+          1653
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "qml\npathology"
+      },
+      {
+        "bbox": [
+          120,
+          1640,
+          148,
+          1652
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "Dept"
+      },
+      {
+        "bbox": [
+          361,
+          1639,
+          444,
+          1652
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "Date of Service"
+      },
+      {
+        "bbox": [
+          539,
+          1639,
+          653,
+          1652
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "For Clinical Enquiries"
+      },
+      {
+        "bbox": [
+          786,
+          1639,
+          852,
+          1652
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "Perf. Branch"
+      },
+      {
+        "bbox": [
+          882,
+          1639,
+          916,
+          1652
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "Quote"
+      },
+      {
+        "bbox": [
+          930,
+          1629,
+          1072,
+          1650
+        ],
+        "category": "Page-footer",
+        "page_number": 1,
+        "text": "25-92828752"
+      }
+    ],
+    "markdown": "\n\n## Page 1\n\nqml\npathology\n\nHealius Pathology Pty Ltd (ABN 84 007 190 043)\nAPA No. 000042 t/a QML Pathology\n11 Riverview Place, Metroplex on Gateway, Murarrie Qld 4172\nPh (07) 3121 4444\n\n# Pathology Report\n\nCMO\nMEDICAL PROVIDER\n\nFor Surgery Use\nUrgent ☐ Ring Patient ☐ Make Appointment ☐ Note in Chart ☐ File ☐\n\nPatient DOE, JOHN\n\nUR No.\n\nPatient Address MEDICAL PROVIDER\n\nSex M Age 64 years DOB 24/07/1960\n\nRequested 03/07/2025\n\nReport For MEDICAL PROVIDER CMO\n\nCollected 03/07/2025 12:00 AM\n\nRef. by/copy to\n\nReported 04/07/2025 11:12 AM\n\n## CUMULATIVE LIPID RISK REPORT\n\nDate 22/08/23 14/08/24 03/07/25\nTime 08:09 00:00 00:00\nLab No 73407873 76197912 92828752\n         RANDOM RANDOM RANDOM\n\nTarget if\nHIGH RISK\n\nTotal Cholesterol      6.0   6.1   5.1 mmol/L (below 4.0)\nTriglycerides         1.5   2.3   1.8 mmol/L (below 2.0)\n\nCHOLESTEROL FRACTIONS\nHDL                   1.38  1.34  1.09 mmol/L (above 1.0)\nLDL (calculated)*      3.94  3.71  3.19 mmol/L (below 2.5)\nNon-HDL cholesterol*   4.62  4.76  4.01 mmol/L (below 3.3)\nTotal/HDL ratio**     4.3   4.6   4.7\n\n* Secondary prevention LDL and non-HDL cholesterol targets are lower.\n\n** The ratio is for use with the cardiovascular risk calculator.\nWeb-search: \"Australian cardiovascular risk calculator\"\n\n92828752 Treatment is recommended if clinically indicated or if calculated risk exceeds 15% absolute risk of CVD events over 5 years.\n\nNVDPA 2012 Target ranges refer to HIGH RISK PATIENTS.\n\nAs of 7/3/22 LDL will no longer be measured routinely. LDL results will be calculated, in accordance with National harmonisation.\n\nPathology Report\n\nQML RTE001-AV4\n\n1 of 1\n\nqml\npathology\n\nDept\n\nDate of Service\n\nFor Clinical Enquiries\n\nPerf. Branch\n\nQuote\n\n25-92828752",
+    "pages_processed": 1,
+    "status": "success",
+    "total_pages": 1
+  },
+  "status": "COMPLETED",
+  "workerId": "q9t44180kc6rd9"
+}
