@@ -89,29 +89,33 @@ esac
 
 echo "使用处理模式: $PROMPT_TYPE"
 
+# 创建临时JSON文件
+TEMP_JSON=$(mktemp)
+cat > "$TEMP_JSON" << EOF
+{
+    "input": {
+        "pdf_base64": "${PDF_BASE64}",
+        "prompt_type": "${PROMPT_TYPE}"
+    }
+}
+EOF
+
 if [ "$choice" = "2" ]; then
     echo "正在发送异步请求..."
     curl -X POST "${BASE_URL}/run" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${API_KEY}" \
-        -d "{
-            \"input\": {
-                \"pdf_base64\": \"${PDF_BASE64}\",
-                \"prompt_type\": \"${PROMPT_TYPE}\"
-            }
-        }"
+        -d "@$TEMP_JSON"
 else
     echo "正在发送同步请求..."
     curl -X POST "${BASE_URL}/runsync" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${API_KEY}" \
-        -d "{
-            \"input\": {
-                \"pdf_base64\": \"${PDF_BASE64}\",
-                \"prompt_type\": \"${PROMPT_TYPE}\"
-            }
-        }"
+        -d "@$TEMP_JSON"
 fi
+
+# 清理临时文件
+rm -f "$TEMP_JSON"
 
 echo ""
 echo "✅ 请求完成！"

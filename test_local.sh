@@ -68,29 +68,33 @@ read -p "请输入选择 (1 或 2，默认为1): " choice
 
 choice=${choice:-1}
 
+# 创建临时JSON文件
+TEMP_JSON=$(mktemp)
+cat > "$TEMP_JSON" << EOF
+{
+    "input": {
+        "image_base64": "${IMG_BASE64}",
+        "prompt_type": "layout_parsing"
+    }
+}
+EOF
+
 if [ "$choice" = "2" ]; then
     echo "正在发送异步请求..."
     curl -X POST "${BASE_URL}/run" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${API_KEY}" \
-        -d "{
-            \"input\": {
-                \"image_base64\": \"${IMG_BASE64}\",
-                \"prompt_type\": \"layout_parsing\"
-            }
-        }"
+        -d "@$TEMP_JSON"
 else
     echo "正在发送同步请求..."
     curl -X POST "${BASE_URL}/runsync" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${API_KEY}" \
-        -d "{
-            \"input\": {
-                \"image_base64\": \"${IMG_BASE64}\",
-                \"prompt_type\": \"layout_parsing\"
-            }
-        }"
+        -d "@$TEMP_JSON"
 fi
+
+# 清理临时文件
+rm -f "$TEMP_JSON"
 
 echo ""
 echo "✅ 请求完成！"

@@ -1,0 +1,24 @@
+{
+  "delayTime": 1478,
+  "executionTime": 20937,
+  "id": "aae51931-bf39-465d-b624-2431d31315ba-u2",
+  "output": {
+    "input_type": "image",
+    "layout_data": [
+      {
+        "bbox": [
+          10,
+          11,
+          1550,
+          847
+        ],
+        "category": "Table",
+        "text": "<table><thead><tr><td>Date</td><td>Description</td></tr></thead><tbody><tr><td>19/05/2023</td><td>shoulder bursitis \"Subacromial bursal thickening with effusion bilaterally. Suspected bursitis. Adhesive capsulitis i...</td></tr><tr><td>19/05/2023</td><td>supraspinatus tear \"Full-thickness right supraspinatus tear without rupture\"</td></tr><tr><td>03/11/2022</td><td>urethral stricture \"Urethrogram, cystoscopy, Optical radial cuts\"</td></tr><tr><td>22/03/2022</td><td>trigger finger \"release of 2 & 3rd right fingers\"</td></tr><tr><td>08/09/2017</td><td>colonoscopy \"Diverticular disease, haemorroids\"</td></tr><tr><td>28/10/2016</td><td>cataract surgery \"Right\"</td></tr><tr><td>27/02/2016</td><td>Hepatitis B Immune \"Presume adequae past vaccination\"</td></tr><tr><td>17/06/2014</td><td>medical examination for drivers licence \"DR KANGA -- can continue H endorsed license...for 12/12ly Exercise stres ech...</td></tr><tr><td>26/04/2013</td><td>transurethral resection of prostate \"TURP and cystoscopy\"</td></tr><tr><td>07/09/2012</td><td>reduction of haemorrhoids \"Banding at RDH\"</td></tr><tr><td>01/12/2011</td><td>coronary angiography \"patent stent to LAD, chronically occluded RCA with collateral filling from left\"</td></tr><tr><td>01/12/2011</td><td>hypertension</td></tr><tr><td>01/12/2011</td><td>erectile dysfunction</td></tr><tr><td>13/12/2010</td><td>asthma \"seasonal\"</td></tr><tr><td>13/12/2010</td><td>oesophageal reflux</td></tr><tr><td>13/12/2010</td><td>gout</td></tr><tr><td>08/11/2010</td><td>anxiety</td></tr></tbody></table>"
+      }
+    ],
+    "markdown": "<table><thead><tr><td>Date</td><td>Description</td></tr></thead><tbody><tr><td>19/05/2023</td><td>shoulder bursitis \"Subacromial bursal thickening with effusion bilaterally. Suspected bursitis. Adhesive capsulitis i...</td></tr><tr><td>19/05/2023</td><td>supraspinatus tear \"Full-thickness right supraspinatus tear without rupture\"</td></tr><tr><td>03/11/2022</td><td>urethral stricture \"Urethrogram, cystoscopy, Optical radial cuts\"</td></tr><tr><td>22/03/2022</td><td>trigger finger \"release of 2 & 3rd right fingers\"</td></tr><tr><td>08/09/2017</td><td>colonoscopy \"Diverticular disease, haemorroids\"</td></tr><tr><td>28/10/2016</td><td>cataract surgery \"Right\"</td></tr><tr><td>27/02/2016</td><td>Hepatitis B Immune \"Presume adequae past vaccination\"</td></tr><tr><td>17/06/2014</td><td>medical examination for drivers licence \"DR KANGA -- can continue H endorsed license...for 12/12ly Exercise stres ech...</td></tr><tr><td>26/04/2013</td><td>transurethral resection of prostate \"TURP and cystoscopy\"</td></tr><tr><td>07/09/2012</td><td>reduction of haemorrhoids \"Banding at RDH\"</td></tr><tr><td>01/12/2011</td><td>coronary angiography \"patent stent to LAD, chronically occluded RCA with collateral filling from left\"</td></tr><tr><td>01/12/2011</td><td>hypertension</td></tr><tr><td>01/12/2011</td><td>erectile dysfunction</td></tr><tr><td>13/12/2010</td><td>asthma \"seasonal\"</td></tr><tr><td>13/12/2010</td><td>oesophageal reflux</td></tr><tr><td>13/12/2010</td><td>gout</td></tr><tr><td>08/11/2010</td><td>anxiety</td></tr></tbody></table>",
+    "status": "success"
+  },
+  "status": "COMPLETED",
+  "workerId": "q9t44180kc6rd9"
+}
